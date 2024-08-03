@@ -9,6 +9,7 @@ class JsApi extends JavaScriptNamespaceInterface {
   @override
   void register() {
     registerFunction(getAlbumList, functionName: 'getAlbumList');
+    registerFunction(getPhotoThumb, functionName: 'getPhotoThumb');
   }
 
   void getAlbumList(dynamic msg, CompletionHandler handler) async {
@@ -24,24 +25,28 @@ class JsApi extends JavaScriptNamespaceInterface {
       final List<AssetPathEntity> list = await PhotoManager.getAssetPathList();
 
       final resultListTask = list.map((path) async {
-        // 获取每个相册的第一张照片
+        // 获取每个相册的所有照片
         final count = await path.assetCountAsync;
         final List<AssetEntity> entities = await path.getAssetListPaged(
           page: 0,
-          size: 1,
+          size: count,
         );
 
-        entities.forEach((action) {
-          print(action.thumbnailData);
+        final resultListTask = entities.map((entity) async {
+          return {
+            'id': entity.id,
+            'cover': '',
+          };
         });
+
+        final resultList = await Future.wait(resultListTask);
 
         return {
           'id': path.id,
           'name': path.name,
           "count": count,
-          "cover": entities.isNotEmpty
-              ? base64Encode((await entities.first.thumbnailData)!)
-              : null,
+          "cover": base64Encode((await entities.first.thumbnailData)!),
+          "children": resultList.toList(),
         };
       });
 
@@ -52,6 +57,26 @@ class JsApi extends JavaScriptNamespaceInterface {
       // Limited(iOS) or Rejected, use `==` for more precise judgements.
       // You can call `PhotoManager.openSetting()` to open settings for further steps.
     }
+  }
+
+  void getPhotoThumb(dynamic msg, CompletionHandler handler) async {
+    print("[DSBridge] getPhotoThumb");
+
+    final entity =  await AssetEntity.fromId(msg['id']);
+    print(msg['id']);
+    print(entity != null);
+    if (entity != null) {
+      final thumb = await entity.thumbnailData;
+      final origin = await entity.originBytes;
+      handler.complete({
+        'id': entity.id,
+        'thumb': base64Encode(thumb!),
+        'origin': base64Encode(origin!),
+      });
+    } else {
+      handler.complete(null);
+    }
+
   }
 }
 

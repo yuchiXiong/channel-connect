@@ -1,5 +1,15 @@
 import Peer from "peerjs";
 
+export enum EPeerMessageType {
+  Greeting = 'Greeting',
+  AlbumList = 'AlbumList',
+}
+
+export interface IPeerMessage<T> {
+  type: string;
+  data: T;
+}
+
 let peerInstance: Peer | null = null
 
 export const getPeerInstance = (id: string) => {

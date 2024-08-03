@@ -1,21 +1,28 @@
 import { useEffect, useRef, useState } from "react"
-import { getPeerInstance } from "../utils/peer";
+import { EPeerMessageType, getPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
-import { chooseFile } from "../utils/chooseFile";
-import { getAlbumList } from "../utils/jsbridge";
+import { getAlbumList, getPhotoInfo, getPhotoThumb, IAlbumListItem } from "../utils/jsbridge";
+import { AlertDialog, Button, Flex } from "@radix-ui/themes";
+import { PhotoProvider, PhotoView } from "react-photo-view";
 
 let didInit = false;
 
 const MobilePage = () => {
 
-  const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
-  const [albumList, setAlbumList] = useState<{
+  const [getAlbumListLoading, setGetAlbumListLoading] = useState(false);
+  const [testGetPhotoInfo, setTestGetPhotoInfo] = useState<{
     id: number;
-    name: string;
-    count: number;
-    cover: string;
-  }[]>([]);
+    thumb: string;
+    origin: string;
+  }>({
+    id: 0,
+    thumb: '',
+    origin: '',
+  });
+
+  const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
+  const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
   const [messageList, setMessageList] = useState<string[]>([]);
   const connRef = useRef<DataConnection | null>(null)
 
@@ -28,7 +35,10 @@ const MobilePage = () => {
         connRef.current = conn;
 
         conn.on("open", () => {
-          conn.send("hello!");
+          conn.send({
+            type: EPeerMessageType.Greeting,
+            data: "hello!"
+          } as IPeerMessage<string>);
           setConnState('open')
         });
 
@@ -57,30 +67,77 @@ const MobilePage = () => {
     }
   }, [])
 
-  const seedMessage = async () => {
-    console.log("seedMessage")
+  const getAlbumListFromNative = async () => {
+    console.log("getAlbumListFromNative")
 
+    setGetAlbumListLoading(true)
     const [error, files] = await radash.try(getAlbumList)();
-    console.log(error, files);
     if (error) {
-      alert('error' + error.message)
+      console.error('error' + error.message)
       return;
     }
-    console.log(files);
+    setGetAlbumListLoading(false)
     setAlbumList([...files])
+  }
+
+  const sendWebRTCMessage = () => {
+    connRef.current?.send({
+      type: EPeerMessageType.AlbumList,
+      data: albumList
+    } as IPeerMessage<IAlbumListItem[]>)
+  }
+
+  const TEST_GET_PHOTO_INFO = async () => {
+    const allIds = albumList.map((item) => item.children).flat().map(i => i.id);
+    const randomId = allIds[Math.floor(Math.random() * allIds.length)];
+    const [error, fileInfo] = await radash.try(getPhotoInfo)(randomId);
+    if (error) {
+      console.error('error' + error.message)
+      return;
+    }
+    setTestGetPhotoInfo(fileInfo)
   }
 
 
   return (
-    <div style={{
-      height: '100%',
-      width: '100%',
-    }}>
+    <div className="h-full w-full">
+
       <p onDoubleClick={() => {
         window.location.reload()
       }}>[Mobile] 连接状态：{connState}(debug:{new Date().getTime()})</p>
 
-      <button style={{ marginTop: 20 }} onClick={seedMessage}>Seed Test Message</button>
+      <div className="flex flex-col flex-wrap w-full" >
+        <button disabled={getAlbumListLoading} className="h-12 my-1 bg-green-400 text-white" onClick={getAlbumListFromNative}>{getAlbumListLoading ? '获取中' : '获取相册信息'}</button>
+        <button className="h-12 my-1 bg-green-400 text-white" onClick={sendWebRTCMessage}>发送 WebRTC 消息</button>
+        <AlertDialog.Root>
+          <AlertDialog.Trigger>
+            <button className="h-12 my-1 bg-green-400 text-white" onClick={TEST_GET_PHOTO_INFO}>[Bridge Test]随机选择获取一张照片的缩略图</button>
+          </AlertDialog.Trigger>
+          <AlertDialog.Content maxWidth="450px">
+            <AlertDialog.Title>[Bridge Test]随机选择获取一张照片的缩略图</AlertDialog.Title>
+            <AlertDialog.Description size="2">
+              <img src={`data:image/jpeg;base64, ${testGetPhotoInfo.thumb}`} className="w-full" alt="testGetPhotoThumbBase64Str" />
+            </AlertDialog.Description>
+
+            <Flex gap="3" mt="4" justify="end">
+              <AlertDialog.Cancel>
+                <Button variant="soft" color="gray">
+                  关闭
+                </Button>
+              </AlertDialog.Cancel>
+            </Flex>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
+        {testGetPhotoInfo.origin && (
+          <PhotoProvider>
+            <PhotoView src={`data:image/jpeg;base64, ${testGetPhotoInfo.origin}`}>
+              <button className="h-12 my-1 bg-green-400 text-white" >
+                [Bridge Test]查看原图
+              </button>
+            </PhotoView>
+          </PhotoProvider>
+        )}
+      </div>
 
       <ul>
         {messageList.map((message, index) => (
