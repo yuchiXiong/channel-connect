@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { getPeerInstance } from '../utils/peer'
 
@@ -7,17 +6,13 @@ let didInit = false;
 
 
 const Home = () => {
-  const navigate = useNavigate()
 
+  const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const connRef = useRef<DataConnection | null>(null)
   const isPeerInitializedRef = useRef(false);
+  const [messageList, setMessageList] = useState<string[]>([]);
 
-  const goToHelloPage = () => {
-    document.startViewTransition(() => {
-      navigate('/mobile')
-    })
-  }
 
   useEffect(() => {
     if (!didInit) {
@@ -27,9 +22,23 @@ const Home = () => {
 
       if (!isPeerInitializedRef.current) {
         connRef.current.on("open", () => {
-          console.log('open!')
-          connRef.current?.send("hi!");
+          console.log("connected to: " + connRef.current?.peer);
+          setConnState('open')
         });
+
+        connRef.current.on("close", () => {
+          setConnState('close')
+        })
+        connRef.current.on('iceStateChanged', (state) => {
+          console.log('iceStateChanged', state)
+        })
+        connRef.current.on("error", () => {
+          setConnState('error')
+
+        })
+        connRef.current.on('data', (data) => {
+          setMessageList((prev) => [data as string, ...prev]);
+        })
 
         isPeerInitializedRef.current = true;
       }
@@ -39,8 +48,6 @@ const Home = () => {
 
     return () => {
       console.log("disconnecting")
-      // peer.disconnect()
-      // peer.destroy()
     }
   }, [])
 
@@ -54,6 +61,7 @@ const Home = () => {
 
   return (
     <>
+      <p>连接状态：{connState}</p>
       <textarea
         style={{
           width: 320,
@@ -62,11 +70,14 @@ const Home = () => {
         ref={inputRef}
       />
 
-      <p className="read-the-docs" onClick={goToHelloPage}>
-        Click on the Vite and React logos to learn more
-      </p>
 
       <button style={{ marginTop: 20 }} onClick={seedMessage}>Seed Message</button>
+
+      <ul>
+        {messageList.map((message, index) => (
+          <li key={index}>{message}</li>
+        ))}
+      </ul>
     </>
   )
 }

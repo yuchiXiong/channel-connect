@@ -1,0 +1,31 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      dsbridge:
+        specifier: ^3.1.4
+        version: 3.1.4
+      radash:
+        specifier: ^12.1.0
+        version: 12.1.0
+
+packages:
+
+  dsbridge@3.1.4:
+    resolution: {integrity: sha512-0PczJDk+SRiJjyfTRIVvAsdmC4CbSb4nbfa/ajr3ZbluCpkIiiftDLBITygj0KIKvNvXHqMdXbBQGn99rWKT9A==}
+
+  radash@12.1.0:
+    resolution: {integrity: sha512-b0Zcf09AhqKS83btmUeYBS8tFK7XL2e3RvLmZcm0sTdF1/UUlHSsjXdCcWNxe7yfmAlPve5ym0DmKGtTzP6kVQ==}
+    engines: {node: '>=14.18.0'}
+
+snapshots:
+
+  dsbridge@3.1.4: {}
+
+  radash@12.1.0: {}
