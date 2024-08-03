@@ -3,6 +3,7 @@ import Peer from "peerjs";
 export enum EPeerMessageType {
   Greeting = 'Greeting',
   AlbumList = 'AlbumList',
+  RequestAlbumInfo = 'RequestAlbumInfo',
 }
 
 export interface IPeerMessage<T> {

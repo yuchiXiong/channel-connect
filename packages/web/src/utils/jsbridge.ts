@@ -1,15 +1,18 @@
 import dsBridge from "dsbridge";
 
 export interface IAlbumListItem {
-  id: number;
+  id: string;
   name: string;
   cover: string;
   count: number;
   children: {
-    id: number;
-    cover: string;
-  }[]
+    id: string;
+    thumb: string;
+    origin: string;
+  }[];
 }
+
+export type IPhotoInfo = IAlbumListItem["children"][number];
 
 export const getAlbumList = (): Promise<IAlbumListItem[]> => {
   console.log("getAlbumList");
@@ -25,18 +28,10 @@ export const getAlbumList = (): Promise<IAlbumListItem[]> => {
   });
 };
 
-export const getPhotoInfo = (id: number): Promise<{
-  id: number;
-  thumb: string;
-  origin: string
-}> => {
+export const getPhotoInfo = (id: string): Promise<IPhotoInfo> => {
   return new Promise((resolve, reject) => {
     try {
-      dsBridge.call("getPhotoThumb", { id }, (res: {
-        id: number;
-        thumb: string;
-        origin: string
-      }) => {
+      dsBridge.call("getPhotoThumb", { id }, (res: IPhotoInfo) => {
         resolve(res);
       });
     } catch (e) {
@@ -44,4 +39,4 @@ export const getPhotoInfo = (id: number): Promise<{
       console.log(e);
     }
   });
-}
+};

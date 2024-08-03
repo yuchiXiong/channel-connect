@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
-import { getAlbumList, getPhotoInfo, getPhotoThumb, IAlbumListItem } from "../utils/jsbridge";
+import { getAlbumList, getPhotoInfo, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge";
 import { AlertDialog, Button, Flex } from "@radix-ui/themes";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 
@@ -11,19 +11,14 @@ let didInit = false;
 const MobilePage = () => {
 
   const [getAlbumListLoading, setGetAlbumListLoading] = useState(false);
-  const [testGetPhotoInfo, setTestGetPhotoInfo] = useState<{
-    id: number;
-    thumb: string;
-    origin: string;
-  }>({
-    id: 0,
+  const [testGetPhotoInfo, setTestGetPhotoInfo] = useState<IPhotoInfo>({
+    id: '',
     thumb: '',
     origin: '',
   });
 
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
-  const [messageList, setMessageList] = useState<string[]>([]);
   const connRef = useRef<DataConnection | null>(null)
 
   useEffect(() => {
@@ -42,10 +37,22 @@ const MobilePage = () => {
           setConnState('open')
         });
 
-        conn.on("data", (data) => {
+        conn.on("data", async (data) => {
           console.log("received data", data);
-          setMessageList((prev) => [data as string, ...prev]);
-          setConnState('open')
+          const _data = data as IPeerMessage<number>;
+
+          if (_data.type === EPeerMessageType.RequestAlbumInfo) {
+            const id = _data.data;
+            const [error, photoInfo] = await radash.try(getPhotoInfo)(id);
+            if (error) {
+              console.error(error);
+              return;
+            }
+            conn.send({
+              type: EPeerMessageType.RequestAlbumInfo,
+              data: photoInfo
+            } as IPeerMessage<IPhotoInfo>)
+          }
         });
 
         conn.on('close', () => {
@@ -80,10 +87,10 @@ const MobilePage = () => {
     setAlbumList([...files])
   }
 
-  const sendWebRTCMessage = () => {
+  const sendWebRTCMessage = () => { 
     connRef.current?.send({
       type: EPeerMessageType.AlbumList,
-      data: albumList
+      data: albumList.filter(i => i.id !== 'isAll')
     } as IPeerMessage<IAlbumListItem[]>)
   }
 
@@ -139,11 +146,6 @@ const MobilePage = () => {
         )}
       </div>
 
-      <ul>
-        {messageList.map((message, index) => (
-          <li key={index}>{message}</li>
-        ))}
-      </ul>
 
       <ul style={{
         paddingLeft: 0

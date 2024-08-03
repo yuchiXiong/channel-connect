@@ -35,7 +35,8 @@ class JsApi extends JavaScriptNamespaceInterface {
         final resultListTask = entities.map((entity) async {
           return {
             'id': entity.id,
-            'cover': '',
+            'thumb': '',
+            'origin': '',
           };
         });
 
@@ -53,9 +54,9 @@ class JsApi extends JavaScriptNamespaceInterface {
       final resultList = await Future.wait(resultListTask);
 
       handler.complete(resultList.toList());
-    } else {
+    } else { 
       // Limited(iOS) or Rejected, use `==` for more precise judgements.
-      // You can call `PhotoManager.openSetting()` to open settings for further steps.
+      // You can call `PhotoManager.openSetting()` to open settings for further steps. 
     }
   }
 
@@ -63,8 +64,7 @@ class JsApi extends JavaScriptNamespaceInterface {
     print("[DSBridge] getPhotoThumb");
 
     final entity =  await AssetEntity.fromId(msg['id']);
-    print(msg['id']);
-    print(entity != null);
+
     if (entity != null) {
       final thumb = await entity.thumbnailData;
       final origin = await entity.originBytes;
