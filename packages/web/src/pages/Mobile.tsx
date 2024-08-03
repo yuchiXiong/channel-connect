@@ -109,18 +109,18 @@ const MobilePage = () => {
 
 
   return (
-    <div className="h-full w-full">
+    <div className="w-full h-full">
 
       <p onDoubleClick={() => {
         window.location.reload()
       }}>[Mobile] 连接状态：{connState}(debug:{new Date().getTime()})</p>
 
       <div className="flex flex-col flex-wrap w-full" >
-        <button disabled={getAlbumListLoading} className="h-12 my-1 bg-green-400 text-white" onClick={getAlbumListFromNative}>{getAlbumListLoading ? '获取中……' : '获取相册信息'}</button>
-        <button className="h-12 my-1 bg-green-400 text-white" onClick={sendWebRTCMessage}>{sendLoading ? '发送中……' : '发送 WebRTC 消息'}</button>
+        <button disabled={getAlbumListLoading} className="h-12 my-1 text-white bg-green-400" onClick={getAlbumListFromNative}>{getAlbumListLoading ? '获取中……' : '获取相册信息'}</button>
+        <button className="h-12 my-1 text-white bg-green-400" onClick={sendWebRTCMessage}>{sendLoading ? '发送中……' : '发送 WebRTC 消息'}</button>
         <AlertDialog.Root>
           <AlertDialog.Trigger>
-            <button className="h-12 my-1 bg-green-400 text-white" onClick={TEST_GET_PHOTO_INFO}>[Bridge Test]随机选择获取一张照片的缩略图</button>
+            <button className="h-12 my-1 text-white bg-green-400" onClick={TEST_GET_PHOTO_INFO}>[Bridge Test]随机选择获取一张照片的缩略图</button>
           </AlertDialog.Trigger>
           <AlertDialog.Content maxWidth="450px">
             <AlertDialog.Title>[Bridge Test]随机选择获取一张照片的缩略图</AlertDialog.Title>
@@ -140,7 +140,7 @@ const MobilePage = () => {
         {testGetPhotoInfo.origin && (
           <PhotoProvider>
             <PhotoView src={`data:image/jpeg;base64, ${testGetPhotoInfo.origin}`}>
-              <button className="h-12 my-1 bg-green-400 text-white" >
+              <button className="h-12 my-1 text-white bg-green-400" >
                 [Bridge Test]查看原图
               </button>
             </PhotoView>

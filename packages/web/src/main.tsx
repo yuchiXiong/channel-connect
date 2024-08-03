@@ -11,8 +11,12 @@ import { Theme } from '@radix-ui/themes';
 import './index.css'
 import '@radix-ui/themes/styles.css';
 import 'react-photo-view/dist/react-photo-view.css';
+import { isAndroid, isIos } from 'environment';
 
-const vConsole = new VConsole();
+if (isAndroid || isIos) {
+  new VConsole();
+}
+
 const router = createBrowserRouter([
   {
     path: "/",

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge';
-import { Callout, Link } from '@radix-ui/themes';
+import { Callout, CheckboxGroup, Link, ScrollArea } from '@radix-ui/themes';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
 
@@ -30,10 +30,20 @@ const Home = () => {
       setConnState('close')
     })
     connRef.current.on('iceStateChanged', (state) => {
-      console.log('iceStateChanged', state)
+      console.log('iceStateChanged', state);
+      if (state === 'disconnected' || state === 'failed') {
+        setConnState('close')
+      } else if (state === 'connected') {
+        setConnState('open')
+      } else if (state === 'closed') {
+        setConnState('close')
+      } else {
+        console.log('unknown state', state)
+      }
     })
-    connRef.current.on("error", () => {
+    connRef.current.on("error", (err) => {
       setConnState('error')
+      console.log("error", err);
     })
     connRef.current.on('data', (data) => {
       console.log('data', data)
@@ -73,11 +83,20 @@ const Home = () => {
         if (i.isIntersecting) {
           const id = i.target.id.split('_').pop();
 
+          if (!id) return;
+
+          const currentAlbum = albumList.find((album) => {
+            return album.children.map(i => i.id).includes(id)
+          });
+
+          const currentPhoto = currentAlbum?.children.find(i => i.id === id) as IPhotoInfo;
+
+          if (currentPhoto.thumb && currentPhoto.origin) return;
+
           connRef.current?.send({
             type: EPeerMessageType.RequestAlbumInfo,
             data: id
           });
-
 
           observer.unobserve(i.target); // 停止监听此元素
         }
@@ -103,7 +122,7 @@ const Home = () => {
 
 
   return (
-    <section className='flex flex-col h-screen w-screen'>
+    <section className='flex flex-col w-screen h-screen'>
       {connState === 'idle' && (
         <Callout.Root color="blue">
           <Callout.Icon>
@@ -124,37 +143,62 @@ const Home = () => {
           </Callout.Text>
         </Callout.Root>
       )}
+      {connState === 'error' && (
+        <Callout.Root color="red">
+          <Callout.Icon>
+            <InfoCircledIcon />
+          </Callout.Icon>
+          <Callout.Text>
+            连接异常， 请 <Link href="#" onClick={() => location.reload()}>点击这里</Link> 尝试重新连接。
+          </Callout.Text>
+        </Callout.Root>
+      )}
 
-      <section className='flex-1 flex flex-row overflow-hidden'>
-        <section className=' box-border flex flex-col overflow-y-auto'>
-          {albumList.map((album) => (
-            <div onClick={() => setCurrentSelectedAlbum(album.id)} key={album.id} className='p-2 flex flex-row border-b border-solid border-gray-600 relative cursor-pointer'>
-              <img src={`data:image/jpeg;base64, ${album.cover}`} className=' object-cover w-32 h-32' />
-              <span className='bottom-0 left-0 absolute w-full bg-[#00000099] text-white line-clamp-1 px-2'>{album.name}</span>
-              {/* <p className='text-base ml-2'>
-                <p className='text-xl'>{album.name}</p>
-                <p className='text-gray-600 text-sm mt-1'>共 {album.count} 张</p>
-              </p> */}
-            </div>
-          ))}
+      <section className='flex flex-row flex-1 overflow-hidden bg-[#ECECEE]'>
+        <CheckboxGroup.Root defaultValue={['1']} name="example" className='flex flex-col flex-[0.25]'>
+          <CheckboxGroup.Item className='sticky top-0  p-2 items-center !w-full cursor-pointer bg-[#ECECEE] '>选择相册({albumList.length})</CheckboxGroup.Item>
+
+          <ScrollArea type="always" scrollbars="vertical" className='flex-1'>
+            <section className='box-border flex flex-col bg-[#DCDDDF]'>
+
+              {albumList.map((album) => (
+                <CheckboxGroup.Item value={album.id} className='flex flex-row pl-2 items-center flex-1 !w-full  cursor-pointer  hover:bg-[#ECECEE] '>
+                  <div onClick={() => setCurrentSelectedAlbum(album.id)} key={album.id} className='flex flex-row items-center w-full p-2 '>
+                    <img src={`data:image/jpeg;base64, ${album.cover}`} className='object-cover w-16 h-16' />
+                    <p className='flex-1 pl-3 text-base text-black line-clamp-1'>
+                      {album.name}({album.count})
+                    </p>
+                  </div>
+                </CheckboxGroup.Item>
+              ))}
+
+            </section>
+          </ScrollArea>
+        </CheckboxGroup.Root>
+
+        <section className='flex flex-col flex-[0.75] m-0 overflow-hidden' id='scrollContainer'>
+          <div className='sticky top-0 p-2 bg-white'>{albumList.find(i => i.id === currentSelectedAlbum)?.name}</div>
+          <ScrollArea type="always" scrollbars="vertical" className='flex-1 h-full'>
+            <section className='flex flex-row flex-wrap content-start flex-1 w-full h-full bg-white'>
+              <PhotoProvider>
+                {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item, index) => (
+                  <PhotoView key={index} src={`data:image/jpeg;base64, ${item.origin}`}>
+                    {item.thumb ? (
+                      <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='object-cover w-32 h-32 m-1' />
+                    ) : (
+                      <div id={`image_${item.id}`} className='flex items-center justify-center w-32 h-32 m-1 text-gray-400 bg-gray-200'>无封面</div>
+                    )}
+                  </PhotoView>
+                ))}
+              </PhotoProvider>
+            </section>
+          </ScrollArea>
         </section>
-        <section className='flex-1 flex flex-wrap m-0 overflow-y-auto' id='scrollContainer'>
-          <PhotoProvider>
-            {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item, index) => (
-              <PhotoView key={index} src={`data:image/jpeg;base64, ${item.origin}`}>
-                {item.thumb ? (
-                  <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='w-32 h-32 object-cover m-1' />
-                ) : (
-                  <div id={`image_${item.id}`} className='w-32 h-32 m-1 bg-gray-200 flex items-center justify-center text-gray-400'>无封面</div>
-                )}
-              </PhotoView>
-            ))}
-          </PhotoProvider>
-        </section>
-      </section>
+
+      </section >
 
 
-    </section>
+    </section >
   )
 }
 
