@@ -34,7 +34,6 @@ const Home = () => {
     })
     connRef.current.on("error", () => {
       setConnState('error')
-
     })
     connRef.current.on('data', (data) => {
       console.log('data', data)
@@ -44,16 +43,18 @@ const Home = () => {
       } else if (_data.type === EPeerMessageType.AlbumList) {
         setAlbumList([..._data.data as IAlbumListItem[]])
       } else if (_data.type === EPeerMessageType.RequestAlbumInfo) {
-        const res = _data.data as IPhotoInfo;
-        console.log('requestAlbumInfo', res.id, albumList)
-        const currentAlbum = albumList.find((album) => {
-          return album.children.map(i => i.id).includes(res.id)
-        }) as IAlbumListItem;
-        console.log('currentAlbum', currentAlbum)
-        const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
-        currentImg.thumb = res.thumb;
-        currentImg.origin = res.origin;
-        setAlbumList([...albumList])
+
+        setAlbumList((_albumList) => {
+          const res = _data.data as IPhotoInfo;
+
+          const currentAlbum = _albumList.find((album) => {
+            return album.children.map(i => i.id).includes(res.id)
+          }) as IAlbumListItem;
+          const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
+          currentImg.thumb = res.thumb;
+          currentImg.origin = res.origin;
+          return [..._albumList]
+        })
       }
     })
 
@@ -64,12 +65,11 @@ const Home = () => {
       connRef.current?.close();
       connRef.current = null;
     }
-  }, [albumList])
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       for (const i of entries) {
-        console.log(i)
         if (i.isIntersecting) {
           const id = i.target.id.split('_').pop();
 
@@ -92,7 +92,7 @@ const Home = () => {
       observer.disconnect();
 
     }
-  }, [albumList, currentSelectedAlbum]);
+  }, [albumList.length, currentSelectedAlbum]);
 
   // const seedMessage = () => {
   //   if (inputRef.current) {

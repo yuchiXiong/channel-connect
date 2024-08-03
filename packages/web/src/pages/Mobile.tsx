@@ -16,7 +16,7 @@ const MobilePage = () => {
     thumb: '',
     origin: '',
   });
-
+  const [sendLoading, setSendLoading] = useState(false);
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
   const connRef = useRef<DataConnection | null>(null)
@@ -87,11 +87,13 @@ const MobilePage = () => {
     setAlbumList([...files])
   }
 
-  const sendWebRTCMessage = () => { 
-    connRef.current?.send({
+  const sendWebRTCMessage =async () => { 
+    setSendLoading(true);
+    await connRef.current?.send({
       type: EPeerMessageType.AlbumList,
       data: albumList.filter(i => i.id !== 'isAll')
-    } as IPeerMessage<IAlbumListItem[]>)
+    } as IPeerMessage<IAlbumListItem[]>);
+    setSendLoading(false);
   }
 
   const TEST_GET_PHOTO_INFO = async () => {
@@ -114,8 +116,8 @@ const MobilePage = () => {
       }}>[Mobile] 连接状态：{connState}(debug:{new Date().getTime()})</p>
 
       <div className="flex flex-col flex-wrap w-full" >
-        <button disabled={getAlbumListLoading} className="h-12 my-1 bg-green-400 text-white" onClick={getAlbumListFromNative}>{getAlbumListLoading ? '获取中' : '获取相册信息'}</button>
-        <button className="h-12 my-1 bg-green-400 text-white" onClick={sendWebRTCMessage}>发送 WebRTC 消息</button>
+        <button disabled={getAlbumListLoading} className="h-12 my-1 bg-green-400 text-white" onClick={getAlbumListFromNative}>{getAlbumListLoading ? '获取中……' : '获取相册信息'}</button>
+        <button className="h-12 my-1 bg-green-400 text-white" onClick={sendWebRTCMessage}>{sendLoading ? '发送中……' : '发送 WebRTC 消息'}</button>
         <AlertDialog.Root>
           <AlertDialog.Trigger>
             <button className="h-12 my-1 bg-green-400 text-white" onClick={TEST_GET_PHOTO_INFO}>[Bridge Test]随机选择获取一张照片的缩略图</button>
