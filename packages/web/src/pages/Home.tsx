@@ -129,7 +129,8 @@ const Home = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            等待连接中...
+            <p>正在连接到手机，请确保 App 已打开……</p>
+            <small>如果您已打开 App 可以 <Link href="#" onClick={() => location.reload()}>点击这里</Link> 尝试重新连接。</small>
           </Callout.Text>
         </Callout.Root>
       )}
@@ -154,7 +155,7 @@ const Home = () => {
         </Callout.Root>
       )}
 
-      <section className='flex flex-row flex-1 overflow-hidden bg-[#ECECEE]'>
+      {connState === "open" && <section className='flex flex-row flex-1 overflow-hidden bg-[#ECECEE]'>
         <CheckboxGroup.Root defaultValue={['1']} name="example" className='flex flex-col flex-[0.25]'>
           <CheckboxGroup.Item className='sticky top-0  p-2 items-center !w-full cursor-pointer bg-[#ECECEE] '>选择相册({albumList.length})</CheckboxGroup.Item>
 
@@ -181,8 +182,8 @@ const Home = () => {
           <ScrollArea type="always" scrollbars="vertical" className='flex-1 h-full'>
             <section className='flex flex-row flex-wrap content-start flex-1 w-full h-full bg-white'>
               <PhotoProvider>
-                {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item, index) => (
-                  <PhotoView key={index} src={`data:image/jpeg;base64, ${item.origin}`}>
+                {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item) => (
+                  <PhotoView key={item.id} src={`data:image/jpeg;base64, ${item.origin}`}>
                     {item.thumb ? (
                       <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='object-cover w-32 h-32 m-1' />
                     ) : (
@@ -195,7 +196,7 @@ const Home = () => {
           </ScrollArea>
         </section>
 
-      </section >
+      </section >}
 
 
     </section >
