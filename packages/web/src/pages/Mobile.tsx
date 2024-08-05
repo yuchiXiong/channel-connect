@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
-import { getAlbumList, getPhotoInfo, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge";
+import { getAlbumList, getPhotoInfo, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
 
 const MobilePage = () => {
 

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from '../utils/peer'
-import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge';
+import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
 import { Callout, CheckboxGroup, Link, ScrollArea } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
+import { downloadByBase64 } from '../utils/jsbridge.electron';
 
 const Home = () => {
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
@@ -128,9 +129,7 @@ const Home = () => {
     const photo = currentAlbum.children[index];
     if (!photo) return;
     if (!photo.origin) return;
-    // window.open(photo.origin);
-    // console.log(photo.origin)
-    window.electronAPI.file.downloadByBase64(photo.origin);
+    downloadByBase64(photo.origin);
   }
 
 
