@@ -1,10 +1,8 @@
-import { PeerServer } from 'peer';
+import { PeerServer } from "peer";
 
 PeerServer({
-  port: 9000,
-  path: '/myapp',
-  key: 'peerjs'
-}); 
-
-
-
+  port: 443,
+  path: "/myapp",
+  key: "peerjs",
+  host: 'channel-connect.vercel.app',
+});
