@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node-dev src/index.ts",
-    "build": "tsc",
-    "deploy": "node output/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && node output/index.js"
   },
   "keywords": [],
   "author": "",

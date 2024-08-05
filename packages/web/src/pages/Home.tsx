@@ -3,7 +3,7 @@ import { DataConnection } from 'peerjs'
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge';
 import { Callout, CheckboxGroup, Link, ScrollArea } from '@radix-ui/themes';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { InfoCircledIcon, DownloadIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
 
 const Home = () => {
@@ -120,6 +120,19 @@ const Home = () => {
   //   }
   // }
 
+  const downloadFile = (index: number) => {
+    const currentAlbum = albumList.find((album) => {
+      return album.id === currentSelectedAlbum;
+    }) as IAlbumListItem;
+
+    const photo = currentAlbum.children[index];
+    if (!photo) return;
+    if (!photo.origin) return;
+    // window.open(photo.origin);
+    // console.log(photo.origin)
+    window.electronAPI.file.downloadByBase64(photo.origin);
+  }
+
 
   return (
     <section className='flex flex-col w-screen h-screen'>
@@ -181,7 +194,16 @@ const Home = () => {
           <div className='sticky top-0 p-2 bg-white'>{albumList.find(i => i.id === currentSelectedAlbum)?.name}</div>
           <ScrollArea type="always" scrollbars="vertical" className='flex-1 h-full'>
             <section className='flex flex-row flex-wrap content-start flex-1 w-full h-full bg-white'>
-              <PhotoProvider>
+              <PhotoProvider
+                toolbarRender={({ index }) => {
+                  return (
+                    <>
+                      <DownloadIcon className='size-4 ml-4' onClick={() => downloadFile(index)} />
+                      {/* <InfoCircledIcon className='size-4 ml-4'  /> */}
+                    </>
+                  );
+                }}
+              >
                 {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item) => (
                   <PhotoView key={item.id} src={`data:image/jpeg;base64, ${item.origin}`}>
                     {item.thumb ? (
