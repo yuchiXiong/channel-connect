@@ -35,13 +35,16 @@ class JsApi extends JavaScriptNamespaceInterface {
         final resultListTask = entities.map((entity) async {
           return {
             'id': entity.id,
+            'title': entity.title,
+            'width': entity.width,
+            'height': entity.height,
             'thumb': '',
             'origin': '',
           };
         });
 
         final resultList = await Future.wait(resultListTask);
-
+        
         return {
           'id': path.id,
           'name': path.name,

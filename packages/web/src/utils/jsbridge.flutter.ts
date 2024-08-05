@@ -9,6 +9,9 @@ export interface IAlbumListItem {
     id: string;
     thumb: string;
     origin: string;
+    title: string;
+    width: number;
+    height: number;
   }[];
 }
 

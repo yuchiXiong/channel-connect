@@ -1,6 +1,16 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import fs from 'fs';
+
+async function handleOpenDirectory() {
+  console.log("[DEBUG] handleOpenDirectory");
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  if (!canceled) {
+    return filePaths[0];
+  }
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -18,7 +28,8 @@ const createWindow = () => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL("http://10.241.38.201:5173");
+  mainWindow.loadURL("http://192.168.0.106:5173");
+  // mainWindow.loadURL("http://10.241.38.201:5173");
   // if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
   //   mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   // } else {
@@ -55,6 +66,7 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 
 app.whenReady().then(() => {
+  ipcMain.handle("dialog:openDirectory", handleOpenDirectory);
   ipcMain.handle("downloadByBase64", (e, base64Str, outPath) => {
     // base64字符串转二进制图片数据
     const buffer = Buffer.from(base64Str, "base64");

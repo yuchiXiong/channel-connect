@@ -5,7 +5,7 @@ import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
 import { Callout, CheckboxGroup, Link, ScrollArea } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
-import { downloadByBase64 } from '../utils/jsbridge.electron';
+import { downloadByBase64, openDirectory } from '../utils/jsbridge.electron';
 
 const Home = () => {
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
@@ -106,7 +106,6 @@ const Home = () => {
     const elements = document.querySelectorAll('[id*=image_]');
     for (const i of elements) {
       observer.observe(i);
-
     }
     return () => {
       observer.disconnect();
@@ -121,7 +120,7 @@ const Home = () => {
   //   }
   // }
 
-  const downloadFile = (index: number) => {
+  const downloadFile = async (index: number) => {
     const currentAlbum = albumList.find((album) => {
       return album.id === currentSelectedAlbum;
     }) as IAlbumListItem;
@@ -129,7 +128,8 @@ const Home = () => {
     const photo = currentAlbum.children[index];
     if (!photo) return;
     if (!photo.origin) return;
-    downloadByBase64(photo.origin);
+    const savePath = await openDirectory();
+    downloadByBase64(photo.origin, savePath);
   }
 
 
@@ -197,8 +197,8 @@ const Home = () => {
                 toolbarRender={({ index }) => {
                   return (
                     <>
-                      <DownloadIcon className='size-4 ml-4' onClick={() => downloadFile(index)} />
-                      {/* <InfoCircledIcon className='size-4 ml-4'  /> */}
+                      <DownloadIcon className='ml-4 opacity-75 cursor-pointer size-4 hover:opacity-100' onClick={() => downloadFile(index)} />
+                      <InfoCircledIcon className='ml-4 opacity-75 cursor-pointer size-4 hover:opacity-100' onClick={() => { }} />
                     </>
                   );
                 }}
