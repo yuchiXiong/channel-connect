@@ -1,5 +1,5 @@
-export const downloadByBase64 = (base64Str: string, outputPath: string) => {
-  window.electronAPI.file.downloadByBase64(base64Str, outputPath);
+export const downloadByBase64 = (base64Str: string, fileName: string, outputPath: string) => {
+  return window.electronAPI.file.downloadByBase64(base64Str, fileName, outputPath);
 };
 
 export const openDirectory = () => {

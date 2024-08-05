@@ -129,7 +129,9 @@ const Home = () => {
     if (!photo) return;
     if (!photo.origin) return;
     const savePath = await openDirectory();
-    downloadByBase64(photo.origin, savePath);
+    downloadByBase64(photo.origin, photo.title, savePath).then(() => {
+      console.log('download success');
+    });
   }
 
 

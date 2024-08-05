@@ -3,7 +3,7 @@ export interface IElectronAPI {
 
   file: {
     openDirectory: () => Promise<string>;
-    downloadByBase64: (base64Str: string, outputPath: string) => Promise<void>;
+    downloadByBase64: (base64Str: string, fileName: string, outputPath: string) => Promise<void>;
   };
 }
 

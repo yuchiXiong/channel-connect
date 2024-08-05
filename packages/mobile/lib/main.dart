@@ -22,7 +22,7 @@ class JsApi extends JavaScriptNamespaceInterface {
       // You can to get assets here.
 
       // Access will continue, but the amount visible depends on the user's selection.
-      final List<AssetPathEntity> list = await PhotoManager.getAssetPathList();
+      final List<AssetPathEntity> list = await PhotoManager.getAssetPathList(hasAll: false);
 
       final resultListTask = list.map((path) async {
         // 获取每个相册的所有照片

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
-import fs from 'fs';
+import fs from "fs";
 
 async function handleOpenDirectory() {
   console.log("[DEBUG] handleOpenDirectory");
@@ -67,11 +67,12 @@ app.on("activate", () => {
 
 app.whenReady().then(() => {
   ipcMain.handle("dialog:openDirectory", handleOpenDirectory);
-  ipcMain.handle("downloadByBase64", (e, base64Str, outPath) => {
+  ipcMain.handle("downloadByBase64", (e, base64Str, fileName, outPath) => {
+
     // base64字符串转二进制图片数据
     const buffer = Buffer.from(base64Str, "base64");
 
     // 将二进制图片数据写入文件
-    fs.writeFileSync(path.join(outPath, "image.jpg"), buffer);
+    fs.writeFileSync(path.join(outPath, fileName), buffer);
   });
 });
