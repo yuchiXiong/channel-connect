@@ -14,6 +14,9 @@ peerjs --port 9000 --key peerjs --path /myapp
 
 ```shell
 cd ./packages/web
+
+pnpm i
+
 pnpm run dev
 ```
 
@@ -21,5 +24,24 @@ pnpm run dev
 
 ```shell
 cd ./packages/core
+
+pnpm i
+
 pnpm run start
+```
+
+## Start Mobile App
+
+```shell
+cd ./packages/mobile
+
+pnpm i
+
+pnpm run dev
+```
+cd ./packages/mobile
+
+flutter pub get
+
+flutter run
 ```
