@@ -2,13 +2,17 @@
 
 A file transfer tool MVP based PeerJS(WebRTC) and Electron.
 
-## Install PeerJS Server
+## Start Server
 
 ```shell
-npm install peer -g
+cd ./packages/server
 
-peerjs --port 9000 --key peerjs --path /myapp
+pnpm i
+
+pnpm run start
 ```
+
+Check it: http://127.0.0.1:9000/myapp It should returns JSON with name, description and website fields.
 
 ## Start Web
 
@@ -33,12 +37,6 @@ pnpm run start
 ## Start Mobile App
 
 ```shell
-cd ./packages/mobile
-
-pnpm i
-
-pnpm run dev
-```
 cd ./packages/mobile
 
 flutter pub get
