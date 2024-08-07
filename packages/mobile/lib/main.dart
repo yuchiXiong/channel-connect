@@ -10,6 +10,7 @@ class JsApi extends JavaScriptNamespaceInterface {
   void register() {
     registerFunction(getAlbumList, functionName: 'getAlbumList');
     registerFunction(getPhotoThumb, functionName: 'getPhotoThumb');
+    registerFunction(getPhotoOrigin, functionName: 'getPhotoOrigin');
   }
 
   void getAlbumList(dynamic msg, CompletionHandler handler) async {
@@ -22,7 +23,8 @@ class JsApi extends JavaScriptNamespaceInterface {
       // You can to get assets here.
 
       // Access will continue, but the amount visible depends on the user's selection.
-      final List<AssetPathEntity> list = await PhotoManager.getAssetPathList(hasAll: false);
+      final List<AssetPathEntity> list =
+          await PhotoManager.getAssetPathList(hasAll: false);
 
       final resultListTask = list.map((path) async {
         // 获取每个相册的所有照片
@@ -32,7 +34,7 @@ class JsApi extends JavaScriptNamespaceInterface {
           size: count,
         );
 
-        final resultListTask = entities.map((entity) async {
+        final resultList = entities.map((entity) {
           return {
             'id': entity.id,
             'title': entity.title,
@@ -43,43 +45,63 @@ class JsApi extends JavaScriptNamespaceInterface {
           };
         });
 
-        final resultList = await Future.wait(resultListTask);
-        
         return {
           'id': path.id,
           'name': path.name,
           "count": count,
           "cover": base64Encode((await entities.first.thumbnailData)!),
           "children": resultList.toList(),
+          "version": 1,
         };
       });
 
       final resultList = await Future.wait(resultListTask);
 
       handler.complete(resultList.toList());
-    } else { 
+    } else {
       // Limited(iOS) or Rejected, use `==` for more precise judgements.
-      // You can call `PhotoManager.openSetting()` to open settings for further steps. 
+      // You can call `PhotoManager.openSetting()` to open settings for further steps.
     }
   }
 
   void getPhotoThumb(dynamic msg, CompletionHandler handler) async {
     print("[DSBridge] getPhotoThumb");
 
-    final entity =  await AssetEntity.fromId(msg['id']);
+    final entity = await AssetEntity.fromId(msg['id']);
 
     if (entity != null) {
       final thumb = await entity.thumbnailData;
-      final origin = await entity.originBytes;
       handler.complete({
         'id': entity.id,
         'thumb': base64Encode(thumb!),
-        'origin': base64Encode(origin!),
+        "origin": "",
+        "title": "",
+        "width": 0,
+        "height": 0
       });
     } else {
       handler.complete(null);
     }
+  }
 
+  void getPhotoOrigin(dynamic msg, CompletionHandler handler) async {
+    print("[DSBridge] getPhotoOrigin");
+
+    final entity = await AssetEntity.fromId(msg['id']);
+
+    if (entity != null) {
+      final origin = await entity.originBytes;
+      handler.complete({
+        'id': entity.id,
+        'origin': base64Encode(origin!),
+        "thumb": "",
+        "title": "",
+        "width": 0,
+        "height": 0
+      });
+    } else {
+      handler.complete(null);
+    }
   }
 }
 
@@ -118,13 +140,13 @@ class _WebViewAppState extends State<WebViewApp> {
       ),
     )
     ..addJavaScriptObject(JsApi())
-    ..loadRequest(Uri.parse('http://192.168.0.106:5173/mobile'));
+    ..loadRequest(Uri.parse('http://192.168.0.105:5173/mobile'));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter WebRTC WebView 006'),
+          title: const Text('Flutter WebRTC WebView 008'),
         ),
         body: WebViewWidget(
           controller: _webViewController,

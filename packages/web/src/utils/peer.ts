@@ -1,9 +1,10 @@
 import Peer from "peerjs";
 
 export enum EPeerMessageType {
-  Greeting = 'Greeting',
-  AlbumList = 'AlbumList',
-  RequestAlbumInfo = 'RequestAlbumInfo',
+  Greeting = "Greeting",
+  AlbumList = "AlbumList",
+  RequestAlbumInfo = "RequestAlbumInfo",
+  RequestPhotoOrigin = "RequestPhotoOrigin",
 }
 
 export interface IPeerMessage<T> {
@@ -11,17 +12,19 @@ export interface IPeerMessage<T> {
   data: T;
 }
 
-let peerInstance: Peer | null = null
+let peerInstance: Peer | null = null;
 
-export const getPeerInstance = (id: string) => {
-  
-  if (!peerInstance) {
-    peerInstance = new Peer(id, {
-      host: "192.168.0.106",
-      port: 9000,
-      path: "/myapp",
-    });
-    console.log(peerInstance)
+export const getPeerInstance = (id: string, standalone = true) => {
+  const options = {
+    host: "192.168.0.105",
+    port: 9000,
+    path: "/myapp",
+  };
+  if (!standalone) {
+    return new Peer(id, options);
   }
-  return peerInstance
-}
+  if (!peerInstance) {
+    peerInstance = new Peer(id, options);
+  }
+  return peerInstance;
+};

@@ -28,7 +28,7 @@ const createWindow = () => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL("http://192.168.0.106:5173");
+  mainWindow.loadURL("http://192.168.0.105:5173");
   // mainWindow.loadURL("http://10.241.38.201:5173");
   // if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
   //   mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

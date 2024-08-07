@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
-import { getAlbumList, getPhotoInfo, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
+import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
+import { Button } from "@radix-ui/themes";
 
 const MobilePage = () => {
 
@@ -12,7 +13,7 @@ const MobilePage = () => {
   const connRef = useRef<DataConnection | null>(null)
 
   useEffect(() => {
-    const peer = getPeerInstance("yuchi-receive-1")
+    const peer = getPeerInstance('yuchi-receive-1', false)
 
     peer.on("connection", (conn) => {
 
@@ -42,6 +43,18 @@ const MobilePage = () => {
             type: EPeerMessageType.RequestAlbumInfo,
             data: photoInfo
           } as IPeerMessage<IPhotoInfo>)
+        } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
+          const id = _data.data;
+          const [error, photoOrigin] = await radash.try(getPhotoOrigin)(id);
+          console.log("photoOrigin", photoOrigin);
+          if (error) {
+            console.error(error);
+            return;
+          }
+          conn.send({
+            type: EPeerMessageType.RequestPhotoOrigin,
+            data: photoOrigin
+          })
         }
       });
 
@@ -58,8 +71,10 @@ const MobilePage = () => {
 
     return () => {
       console.log("disconnecting")
+      connRef.current?.removeAllListeners();
       connRef.current?.close();
       connRef.current = null;
+      peer.disconnect();
     }
   }, [])
 
@@ -113,6 +128,7 @@ const MobilePage = () => {
         </section>
       )}
 
+      <Button type="button" color="green" onClick={() => window.location.reload()} className="mt-20 " >Refresh Page</Button>
 
 
 

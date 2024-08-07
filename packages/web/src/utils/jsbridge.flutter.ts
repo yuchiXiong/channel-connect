@@ -43,3 +43,16 @@ export const getPhotoInfo = (id: string): Promise<IPhotoInfo> => {
     }
   });
 };
+
+export const getPhotoOrigin = (id: string): Promise<IPhotoInfo> => {
+  return new Promise((resolve, reject) => {
+    try {
+      dsBridge.call("getPhotoOrigin", { id }, (res: IPhotoInfo) => {
+        resolve(res);
+      });
+    } catch (e) {
+      reject(e);
+      console.log(e);
+    }
+  });
+};

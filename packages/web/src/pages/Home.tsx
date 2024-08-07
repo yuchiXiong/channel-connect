@@ -6,16 +6,15 @@ import { Callout, CheckboxGroup, Link, ScrollArea } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
 import { downloadByBase64, openDirectory } from '../utils/jsbridge.electron';
+import OriginPhotoPreview from '../components/OriginPhotoPreview';
 
 const Home = () => {
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
   const [currentSelectedAlbum, setCurrentSelectedAlbum] = useState<string>('')
   const connRef = useRef<DataConnection | null>(null)
-  const isPeerInitializedRef = useRef(false);
-  // const [messageList, setMessageList] = useState<string[]>([]);
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
 
-
+  const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
 
   useEffect(() => {
     const peer = getPeerInstance('yuchi-sender-1')
@@ -47,7 +46,7 @@ const Home = () => {
       console.log("error", err);
     })
     connRef.current.on('data', (data) => {
-      console.log('data', data)
+      console.log('客户端接收到消息', data)
       const _data = data as IPeerMessage<string | IAlbumListItem[] | IPhotoInfo>;
       if (_data.type === EPeerMessageType.Greeting) {
         console.log('greeting', _data.data)
@@ -63,16 +62,27 @@ const Home = () => {
           }) as IAlbumListItem;
           const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
           currentImg.thumb = res.thumb;
+          // loadingPhotoThumbIds.current.delete(res.id);
+          return [..._albumList]
+        })
+      } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
+        setAlbumList((_albumList) => {
+          const res = _data.data as IPhotoInfo;
+
+          const currentAlbum = _albumList.find((album) => {
+            return album.children.map(i => i.id).includes(res.id)
+          }) as IAlbumListItem;
+          const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
           currentImg.origin = res.origin;
           return [..._albumList]
         })
       }
     })
 
-    isPeerInitializedRef.current = true;
 
     return () => {
       console.log("disconnecting")
+      connRef.current?.removeAllListeners();
       connRef.current?.close();
       connRef.current = null;
     }
@@ -92,7 +102,14 @@ const Home = () => {
 
           const currentPhoto = currentAlbum?.children.find(i => i.id === id) as IPhotoInfo;
 
+
+          if (loadingPhotoThumbIds.current.has(currentPhoto.id)) return;
           if (currentPhoto.thumb && currentPhoto.origin) return;
+
+          // 记录当前请求的图片id
+          loadingPhotoThumbIds.current.add(currentPhoto.id);
+
+          console.log("requesting", currentPhoto.id, loadingPhotoThumbIds.current)
 
           connRef.current?.send({
             type: EPeerMessageType.RequestAlbumInfo,
@@ -109,7 +126,6 @@ const Home = () => {
     }
     return () => {
       observer.disconnect();
-
     }
   }, [albumList.length, currentSelectedAlbum]);
 
@@ -206,7 +222,12 @@ const Home = () => {
                 }}
               >
                 {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item) => (
-                  <PhotoView key={item.id} src={`data:image/jpeg;base64, ${item.origin}`}>
+                  <PhotoView
+                    key={item.id}
+                    width={item.width}
+                    height={item.height}
+                    render={({ scale, attrs }) => <OriginPhotoPreview attrs={attrs} scale={scale} item={{ ...item }} conn={connRef.current} />}
+                  >
                     {item.thumb ? (
                       <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='object-cover w-32 h-32 m-1' />
                     ) : (
