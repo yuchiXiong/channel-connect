@@ -13,7 +13,6 @@ const OriginPhotoPreview = ({ scale, attrs, item, conn }: {
   const width = Number(attrs.style?.width?.toString().replace('px', '') || 0);
   const offset = (width - item.width) / item.width;
   const childScale = scale === 1 ? scale + offset : 1 + offset;
-
   const loadingOriginIds = useRef<Set<string>>(new Set<string>())
 
   useEffect(() => {
@@ -36,11 +35,22 @@ const OriginPhotoPreview = ({ scale, attrs, item, conn }: {
       {...attrs}
     >
       <div style={{
-        transform: `scale(${childScale})`,
-        width: item.width,
+        width: document.body.clientWidth,
+        height: document.body.clientHeight,
         transformOrigin: '0 0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
-        <img src={`data:image/jpeg;base64, ${(item.origin)}`}></img>
+        {!item.origin ? (
+          <span className="text-white">加载中……</span>
+        ) : (<img
+          style={{
+            width: item.width,
+            transform: `scale(${Math.max(childScale, 1)})`,
+          }}
+          src={`data:image/jpeg;base64, ${(item.origin)}`}
+        />)}
       </div>
     </div>
   )

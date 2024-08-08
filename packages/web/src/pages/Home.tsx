@@ -224,8 +224,8 @@ const Home = () => {
                 {(albumList.find(i => i.id === currentSelectedAlbum)?.children || []).map((item) => (
                   <PhotoView
                     key={item.id}
-                    width={item.width}
-                    height={item.height}
+                    width={document.body.clientWidth}
+                    height={document.body.clientHeight}
                     render={({ scale, attrs }) => <OriginPhotoPreview attrs={attrs} scale={scale} item={{ ...item }} conn={connRef.current} />}
                   >
                     {item.thumb ? (
