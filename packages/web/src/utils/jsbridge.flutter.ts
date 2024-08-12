@@ -12,6 +12,7 @@ export interface IAlbumListItem {
     title: string;
     width: number;
     height: number;
+    createDateSecond: number;
   }[];
 }
 

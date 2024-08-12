@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { IPhotoInfo } from "../utils/jsbridge.flutter"
 import { DataConnection } from "peerjs";
 import { EPeerMessageType } from "../utils/peer";
+import { Spinner } from "@radix-ui/themes";
 
 const OriginPhotoPreview = ({ scale, attrs, item, conn }: {
   scale: number,
@@ -43,7 +44,7 @@ const OriginPhotoPreview = ({ scale, attrs, item, conn }: {
         justifyContent: 'center',
       }}>
         {!item.origin ? (
-          <span className="text-white">加载中……</span>
+          <Spinner />
         ) : (<img
           style={{
             width: item.width,

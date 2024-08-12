@@ -130,7 +130,7 @@ const MobilePage = () => {
 
       <Button type="button" color="green" onClick={() => window.location.reload()} className="mt-20 " >Refresh Page</Button>
 
-
+      <p className="mt-20 text-sm text-gray-400">Built by Yuchi. {new Date().toISOString()}</p>
 
     </div>
   )

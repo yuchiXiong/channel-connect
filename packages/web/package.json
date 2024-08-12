@@ -13,6 +13,7 @@
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/themes": "^3.1.1",
     "classnames": "^2.5.1",
+    "dayjs": "^1.11.12",
     "dsbridge": "^3.1.4",
     "environment": "^1.1.0",
     "peerjs": "^1.5.4",

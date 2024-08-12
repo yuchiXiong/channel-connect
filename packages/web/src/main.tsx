@@ -11,7 +11,9 @@ import { Theme } from '@radix-ui/themes';
 import './index.css'
 import '@radix-ui/themes/styles.css';
 import 'react-photo-view/dist/react-photo-view.css';
-import { isAndroid, isIos } from 'environment';
+import { isAndroid, isIos, isWindows } from 'environment';
+import classNames from 'classnames';
+
 
 if (isAndroid || isIos) {
   new VConsole();
@@ -30,7 +32,13 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Theme>
+    <Theme
+      className={
+        classNames(
+          'overflow-hidden, rounded-lg'
+        )
+      }
+    >
       <RouterProvider router={router} />
     </Theme>
   </React.StrictMode>,

@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, screen } from "electron";
 import path from "path";
 import fs from "fs";
+import { getIPAdress } from "./utils/dev-tools";
+import { optimizer } from '@electron-toolkit/utils'
 
 async function handleOpenDirectory() {
   console.log("[DEBUG] handleOpenDirectory");
@@ -18,17 +20,26 @@ if (require("electron-squirrel-startup")) {
 }
 
 const createWindow = () => {
-  // Create the browser window.
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+  console.log(width, height);
+
   const mainWindow = new BrowserWindow({
-    width: 1600,
-    height: 1200,
+    width: width * 0.8,
+    height: height * 0.8,
+    center: true,
+    resizable: false,
+    frame: false,
+    transparent: true,  
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: true
     },
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL("http://192.168.0.105:5173");
+  mainWindow.loadURL(`http://${getIPAdress()}:5173`);
+
   // mainWindow.loadURL("http://10.241.38.201:5173");
   // if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
   //   mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -38,6 +49,7 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
 };
 
 // This method will be called when Electron has finished
@@ -68,11 +80,11 @@ app.on("activate", () => {
 app.whenReady().then(() => {
   ipcMain.handle("dialog:openDirectory", handleOpenDirectory);
   ipcMain.handle("downloadByBase64", (e, base64Str, fileName, outPath) => {
-
     // base64字符串转二进制图片数据
     const buffer = Buffer.from(base64Str, "base64");
 
     // 将二进制图片数据写入文件
     fs.writeFileSync(path.join(outPath, fileName), buffer);
   });
+  optimizer.registerFramelessWindowIpc();
 });

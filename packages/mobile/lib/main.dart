@@ -40,6 +40,7 @@ class JsApi extends JavaScriptNamespaceInterface {
             'title': entity.title,
             'width': entity.width,
             'height': entity.height,
+            'createDateSecond': entity.createDateSecond,
             'thumb': '',
             'origin': '',
           };
@@ -51,7 +52,6 @@ class JsApi extends JavaScriptNamespaceInterface {
           "count": count,
           "cover": base64Encode((await entities.first.thumbnailData)!),
           "children": resultList.toList(),
-          "version": 1,
         };
       });
 
@@ -146,7 +146,7 @@ class _WebViewAppState extends State<WebViewApp> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter WebRTC WebView 008'),
+          title: Text(DateTime.now().toUtc().toString()),
         ),
         body: WebViewWidget(
           controller: _webViewController,
