@@ -7,6 +7,8 @@ export interface IElectronAPI {
       fileName: string,
       outputPath: string
     ) => Promise<void>;
+    pathJoin: (path: string, ...paths: string[]) => string;
+    openPathDirectory: (path: string) => Promise<void>;
   };
   window: {
     show: () => void;

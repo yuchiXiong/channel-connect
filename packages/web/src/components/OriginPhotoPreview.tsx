@@ -19,8 +19,6 @@ const OriginPhotoPreview = ({ scale, attrs, item, conn }: {
   useEffect(() => {
     if (loadingOriginIds.current.has(item.id)) return;
     if (item.origin) return;
-    console.log('request origin photo', item.id);
-
 
     loadingOriginIds.current.add(item.id);
     conn?.send({

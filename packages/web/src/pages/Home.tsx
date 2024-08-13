@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { EPeerMessageType, getPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
-import { Callout, CheckboxGroup, Code, Heading, Link, ScrollArea, Spinner } from '@radix-ui/themes';
+import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Spinner } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, Cross1Icon, MinusIcon, SquareIcon, CopyIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
-import { downloadByBase64, openDirectory, windowClose, windowMax, windowMin } from '../utils/jsbridge.electron';
+import { downloadByBase64, openDirectory, openPathDirectory, windowClose, windowMax, windowMin } from '../utils/jsbridge.electron';
 import OriginPhotoPreview from '../components/OriginPhotoPreview';
 import dayjs from 'dayjs';
 import * as radash from 'radash';
@@ -14,11 +14,17 @@ import classNames from 'classnames';
 
 const Home = () => {
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
-  const [currentSelectedAlbum, setCurrentSelectedAlbum] = useState<string>('')
-  const connRef = useRef<DataConnection | null>(null)
+  const [currentAlbumId, setCurrentAlbumId] = useState<string>('')
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
   const [windowMaxState, setWindowMaxState] = useState<'window' | 'max'>('window');
+  const [currentSelectedAlbumIds, setCurrentSelectedAlbumIds] = useState<string[]>([]);
+  // const [currentSelectedPhotoIds, setCurrentSelectedPhotoIds] = useState<string[]>([]);
+  const [downloadSuccessPhotoIds, setDownloadSuccessPhotoIds] = useState<string[]>([]);
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success'>('idle');
+  // const [lastDownloadTime, setLastDownloadTime] = useState<string>('');
+  const [lastDownloadPath, setLastDownloadPath] = useState<string>('');
 
+  const connRef = useRef<DataConnection | null>(null)
   const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
 
   useEffect(() => {
@@ -71,6 +77,7 @@ const Home = () => {
           return [..._albumList]
         })
       } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
+
         setAlbumList((_albumList) => {
           const res = _data.data as IPhotoInfo;
 
@@ -79,8 +86,48 @@ const Home = () => {
           }) as IAlbumListItem;
           const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
           currentImg.origin = res.origin;
+
+
+          setDownloadStatus((_downloadStatus) => {
+            let status = _downloadStatus;
+            /**
+            * ! 如果在下载过程中拉取的原图，则视为下载行为
+            */
+            if (_downloadStatus === 'downloading') {
+              setLastDownloadPath((_lastDownloadPath) => {
+                downloadByBase64(currentImg.origin, currentImg.title, _lastDownloadPath + '/' + currentAlbum.name);
+                setDownloadSuccessPhotoIds(ids => {
+                  const _downloadSuccessPhotoIds = [...new Set(ids.concat(currentImg.id))];
+                  console.log('_downloadSuccessPhotoIds', ids, currentImg.id, _downloadSuccessPhotoIds);
+
+                  /**
+                   * todo refactor: 先暂时用回调的方式获取实时的值
+                   */
+                  setCurrentSelectedAlbumIds((_currentSelectedAlbumIds) => {
+                    // 下载完成
+                    const allDownloadPhoto = _currentSelectedAlbumIds.reduce((acc, id) => (_albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
+                    console.log(_downloadSuccessPhotoIds.length, allDownloadPhoto, _currentSelectedAlbumIds)
+
+                    if (_downloadSuccessPhotoIds.length === allDownloadPhoto) {
+                      console.log('下载完成')
+                      status = 'success';
+                    }
+
+                    return _currentSelectedAlbumIds
+                  });
+
+                  return _downloadSuccessPhotoIds;
+                });
+
+                return _lastDownloadPath;
+              })
+            }
+            return status;
+          })
+
           return [..._albumList]
         })
+
       }
     })
 
@@ -132,7 +179,7 @@ const Home = () => {
     return () => {
       observer.disconnect();
     }
-  }, [albumList.length, currentSelectedAlbum]);
+  }, [albumList.length, currentAlbumId]);
 
   // const seedMessage = () => {
   //   if (inputRef.current) {
@@ -143,7 +190,7 @@ const Home = () => {
 
   const downloadFile = async (index: number) => {
     const currentAlbum = albumList.find((album) => {
-      return album.id === currentSelectedAlbum;
+      return album.id === currentAlbumId;
     }) as IAlbumListItem;
 
     const photo = currentAlbum.children[index];
@@ -155,23 +202,68 @@ const Home = () => {
     });
   }
 
+  /** 全部导出 */
+  const batchDownloadPhotos = async () => {
+
+    const savePath = await openDirectory();
+    setLastDownloadPath(savePath);
+    setDownloadStatus('downloading')
+
+    currentSelectedAlbumIds.forEach(id => {
+      const currentAlbum = albumList.find((album) => {
+        return album.id === id;
+      });
+      if (!currentAlbum) return [];
+      return currentAlbum.children.forEach(async (i) => {
+        if (!i.origin) {
+          // 需要先拉取原图，此时需要等待 WebRTC 响应以后才可以继续下载，先进行下一个任务
+          connRef.current?.send({
+            type: EPeerMessageType.RequestPhotoOrigin,
+            data: i.id
+          });
+          return;
+        }
+        await downloadByBase64(i.origin, i.title, savePath + '/' + currentAlbum.name);
+        setDownloadSuccessPhotoIds(ids => [...new Set([...ids, i.id])]);
+      })
+    });
+
+    // 下载完成
+    const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
+    if (downloadSuccessPhotoIds.length === allDownloadPhoto) {
+      setDownloadStatus('success');
+    }
+  }
+
   const handleWindowMax = () => {
-    console.log('max')
     windowMax();
     setWindowMaxState('max')
   }
 
   const handleWindowMin = () => {
-    console.log('min')
-
     windowMax();
     setWindowMaxState('window')
   }
 
+  /**
+   * 更新当前选中的相册 id
+   */
+  const handleAlbumSelected = (val: string[]) => {
+    setCurrentSelectedAlbumIds([...val]);
+  }
 
-  const currentAlbum = albumList.find((album) => album.id === currentSelectedAlbum) as IAlbumListItem;
+  const handleDirectoryOpen = () => {
+    openPathDirectory(lastDownloadPath);
+  }
 
+
+  /** 当前打开的相册对象 */
+  const currentAlbum = albumList.find((album) => album.id === currentAlbumId) as IAlbumListItem;
+
+  /** 当前相册照片通过时间分组 */
   const albumGroupByDay = radash.group((currentAlbum?.children || []), i => dayjs(i.createDateSecond * 1000).format('YYYY-MM-DD'));
+
+  const currentSelectedPhotoTotal = albumList.filter(i => currentSelectedAlbumIds.includes(i.id)).reduce((prev, curr) => prev + curr.children.length, 0)
 
   const dbNavbarClick = windowMaxState === 'max' ? handleWindowMin : handleWindowMax
 
@@ -242,8 +334,10 @@ const Home = () => {
       )}
 
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
-        <CheckboxGroup.Root defaultValue={['1']} name="example" className=' flex flex-col flex-[0.25]'>
-          <CheckboxGroup.Item className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-100 !w-full cursor-pointer hover:backdrop-blur'>选择相册({albumList.length})</CheckboxGroup.Item>
+        <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex flex-col flex-[0.25]'>
+          <CheckboxGroup.Item
+            className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-100 !w-full cursor-pointer hover:backdrop-blur'
+          >选择相册({albumList.length})</CheckboxGroup.Item>
 
           <ScrollArea type="auto" scrollbars="vertical" className='flex-1'>
             <section className='box-border flex flex-col px-1 rounded-lg'>
@@ -251,12 +345,12 @@ const Home = () => {
                 <CheckboxGroup.Item
                   key={album.id}
                   value={album.id}
-                  onClick={() => setCurrentSelectedAlbum(album.id)}
+                  onClick={() => setCurrentAlbumId(album.id)}
                   className='flex flex-row pl-2 items-center flex-1 !w-full rounded-lg cursor-pointer transition hover:bg-[#ECECEE] '
                 >
                   <div key={album.id} className='flex flex-row items-center w-full p-2 '>
                     <img src={`data:image/jpeg;base64, ${album.cover}`} className='object-cover w-16 h-16 rounded' />
-                    <p className='flex items-center flex-1 pl-3 text-base tracking-wider text-black line-clamp-1'>
+                    <p className='flex items-center flex-1 w-full pl-3 text-base tracking-wider text-black truncate'>
                       {album.name}<span className='inline-block h-4 px-2 py-0 ml-1 text-sm leading-4 text-black bg-gray-200 rounded-full'>{album.count}</span>
                     </p>
                   </div>
@@ -317,7 +411,27 @@ const Home = () => {
 
       </section >}
 
+      {currentSelectedAlbumIds.length > 0 && downloadStatus === 'downloading' && (
+        <section className='relative flex flex-col items-center'>
+          <Progress className='w-full' value={downloadSuccessPhotoIds.length / currentSelectedPhotoTotal * 100} size="1" />
+          <span className='my-4 ml-auto mr-2'>正在导出 {downloadSuccessPhotoIds.length} / {currentSelectedPhotoTotal} 项内容到电脑...</span>
+          {/* 支持取消？ */}
+        </section>
+      )}
 
+      {currentSelectedAlbumIds.length > 0 && downloadStatus === 'success' && (
+        <section className='flex flex-row items-center p-4 border-t border-gray-200 border-solid'>
+          <span>已导出 {currentSelectedAlbumIds.length} 个相册，共计 {currentSelectedPhotoTotal} 张照片。</span>
+          <button className='ml-auto text-blue-600' onClick={handleDirectoryOpen}>查看</button>
+        </section>
+      )}
+
+      {currentSelectedAlbumIds.length > 0 && downloadStatus === 'idle' && (
+        <section className='flex flex-row items-center p-4 border-t border-gray-200 border-solid'>
+          <span>当前选中 {currentSelectedAlbumIds.length} 个相册，共计 {currentSelectedPhotoTotal} 张照片。</span>
+          <button className='ml-auto text-blue-600' onClick={batchDownloadPhotos}>全部导出</button>
+        </section>
+      )}
     </section >
   )
 }

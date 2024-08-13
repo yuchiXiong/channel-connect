@@ -22,7 +22,6 @@ if (require("electron-squirrel-startup")) {
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
-  console.log(width, height);
 
   const mainWindow = new BrowserWindow({
     width: width * 0.8,
@@ -82,6 +81,11 @@ app.whenReady().then(() => {
   ipcMain.handle("downloadByBase64", (e, base64Str, fileName, outPath) => {
     // base64字符串转二进制图片数据
     const buffer = Buffer.from(base64Str, "base64");
+
+    // 如果地址不存在，则创建
+    if (!fs.existsSync(outPath)) {
+      fs.mkdirSync(outPath, { recursive: true });
+    }
 
     // 将二进制图片数据写入文件
     fs.writeFileSync(path.join(outPath, fileName), buffer);

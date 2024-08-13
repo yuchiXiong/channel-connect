@@ -33,3 +33,11 @@ export const windowMax = () => {
 export const windowClose = () => {
   return window.electronAPI.window.close();
 };
+
+export const openPathDirectory = (path: string) => {
+  return window.electronAPI.file.openPathDirectory(path);
+};
+
+export const pathJoin = (path: string, ...paths: string[]) => {
+  return window.electronAPI.file.pathJoin(path, ...paths);
+}
