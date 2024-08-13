@@ -16,6 +16,7 @@
     "dayjs": "^1.11.12",
     "dsbridge": "^3.1.4",
     "environment": "^1.1.0",
+    "mitt": "^3.0.1",
     "peerjs": "^1.5.4",
     "radash": "^12.1.0",
     "react": "^18.3.1",
