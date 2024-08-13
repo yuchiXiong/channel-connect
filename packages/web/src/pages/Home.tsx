@@ -241,7 +241,7 @@ const Home = () => {
         </Callout.Root>
       )}
 
-      {connState === "open" && <section className='flex flex-row flex-1 overflow-hidden'>
+      {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
         <CheckboxGroup.Root defaultValue={['1']} name="example" className=' flex flex-col flex-[0.25]'>
           <CheckboxGroup.Item className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-100 !w-full cursor-pointer hover:backdrop-blur'>选择相册({albumList.length})</CheckboxGroup.Item>
 
