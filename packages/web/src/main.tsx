@@ -35,7 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Theme
       className={
         classNames(
-          'overflow-hidden, rounded-lg'
+          'overflow-hidden rounded-lg'
         )
       }
     >
