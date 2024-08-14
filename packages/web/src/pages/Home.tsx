@@ -218,7 +218,7 @@ const Home = () => {
         }) as IAlbumListItem;
         const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
 
-        if (currentImg.thumb === res.thumb) return;
+        if (currentImg.origin === res.origin) return;
 
         currentImg.origin = res.origin;
 
@@ -367,6 +367,9 @@ const Home = () => {
    */
   const handleAlbumSelected = (val: string[]) => {
     setCurrentSelectedAlbumIds([...val]);
+    // 更新下载状态
+    setDownloadStatus('idle');
+    setDownloadSuccessPhotoIds([]);
   }
 
   /**
@@ -392,8 +395,8 @@ const Home = () => {
       <div
         className='box-border flex items-center justify-center w-full px-4 py-2'
         style={{
-          '-webkit-app-region': 'drag',
-          '-webkit-user-select': 'none'
+          'WebkitAppRegion': 'drag',
+          'WebkitUserSelect': 'none'
         }}
         onDoubleClick={dbNavbarClick}
         onDoubleClickCapture={dbNavbarClick}
@@ -401,23 +404,23 @@ const Home = () => {
         <p
           className='flex items-center font-bold tracking-wider text-gray-800'
           style={{
-            '-webkit-app-region': 'no-drag'
+            'WebkitAppRegion': 'no-drag'
           }}
         >
           文件传输助手
           <small className='px-1 ml-1 text-xs tracking-normal text-gray-800 border border-gray-600 border-solid rounded-md'>dev</small>
         </p>
         <MinusIcon className='ml-auto text-gray-600 cursor-pointer size-4' onClick={() => windowMin()} style={{
-          '-webkit-app-region': 'no-drag'
+          'WebkitAppRegion': 'no-drag'
         }} />
         {windowMaxState === 'window' && <SquareIcon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={handleWindowMax} style={{
-          '-webkit-app-region': 'no-drag'
+          'WebkitAppRegion': 'no-drag'
         }} />}
         {windowMaxState === 'max' && <CopyIcon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={handleWindowMin} style={{
-          '-webkit-app-region': 'no-drag'
+          'WebkitAppRegion': 'no-drag'
         }} />}
         <Cross1Icon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={() => windowClose()} style={{
-          '-webkit-app-region': 'no-drag'
+          'WebkitAppRegion': 'no-drag'
         }}
         />
       </div>

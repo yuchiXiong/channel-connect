@@ -49,22 +49,13 @@ export const getHostPeerInstance = (senderId: string, receiverId: string): DataC
   });
 
   conn.on("iceStateChanged", (state) => {
-    if (state === "disconnected" || state === "failed") {
-      emitter.emit("close");
-    } else if (state === "connected") {
-      emitter.emit("open");
-    } else if (state === "closed") {
-      emitter.emit("close");
-    } else {
-      console.log("unknown state", state);
-    }
+    emitter.emit("iceStateChanged", state);
   });
   conn.on("error", (err) => {
     emitter.emit("error", err);
   });
 
   conn.on("data", (data) => {
-    console.log("客户端接收到消息", data);
     emitter.emit("data", data);
   });
 
