@@ -25,12 +25,12 @@ const createWindow = () => {
   const { width, height } = primaryDisplay.workAreaSize;
 
   const mainWindow = new BrowserWindow({
-    width: width * 0.8,
-    height: height * 0.8,
+    width: 1200,
+    height: 900,
     center: true,
     // resizable: false,
     frame: false,
-    transparent: true,
+    // transparent: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: true,

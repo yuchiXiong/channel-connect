@@ -265,7 +265,7 @@ const Home = () => {
   return (
     <section className='flex flex-col w-screen h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
       <div
-        className='box-border flex items-center justify-center w-full px-4 py-2'
+        className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid'
         style={{
           'WebkitAppRegion': 'drag',
           'WebkitUserSelect': 'none'
@@ -329,9 +329,9 @@ const Home = () => {
       )}
 
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
-        <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex flex-col flex-[0.25]'>
+        <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex bg-[rgb(247,247,249)] flex-col flex-[0.25]'>
           <CheckboxGroup.Item
-            className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-100 !w-full cursor-pointer hover:backdrop-blur'
+            className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-300 !w-full cursor-pointer hover:backdrop-blur'
           >选择相册({albumList.length})</CheckboxGroup.Item>
 
           <ScrollArea type="auto" scrollbars="vertical" className='flex-1'>
@@ -358,7 +358,7 @@ const Home = () => {
 
         <section
           className={classNames(
-            'flex flex-col flex-[0.75] bg-[rgb(247,247,249)]',
+            'flex flex-col flex-[0.75] bg-white',
             'overflow-hidden rounded-lg',
             'm-0'
           )}
@@ -378,7 +378,7 @@ const Home = () => {
               >
                 {Object.keys(albumGroupByDay).map((key) => (
                   <React.Fragment key={key}>
-                    <p className='sticky top-0 w-full bg-[rgb(247,247,249)] p-2 text-xl font-bold pt-8'>{key}</p>
+                    <p className='sticky top-0 w-full p-2 pt-8 text-xl font-bold bg-white'>{key}</p>
                     {(albumGroupByDay[key] || []).map((item) => (
                       <PhotoView
                         key={item.id}
@@ -407,7 +407,7 @@ const Home = () => {
       </section >}
 
       {currentSelectedAlbumIds.length > 0 && downloadStatus === 'downloading' && (
-        <section className='relative flex flex-col items-center'>
+        <section className='relative bg-[rgb(247,247,249)] flex flex-col items-center'>
           <Progress className='w-full' value={downloadSuccessPhotoIds.length / currentSelectedPhotoTotal * 100} size="1" />
           <span className='my-4 ml-auto mr-2'>正在导出 {downloadSuccessPhotoIds.length} / {currentSelectedPhotoTotal} 项内容到电脑...</span>
           {/* 支持取消？ */}
@@ -415,14 +415,14 @@ const Home = () => {
       )}
 
       {currentSelectedAlbumIds.length > 0 && downloadStatus === 'success' && (
-        <section className='flex flex-row items-center p-4 border-t border-gray-200 border-solid'>
+        <section className='flex bg-[rgb(247,247,249)] flex-row items-center p-4 border-t border-gray-300 border-solid'>
           <span>已导出 {currentSelectedAlbumIds.length} 个相册，共计 {currentSelectedPhotoTotal} 张照片。</span>
           <button className='ml-auto text-blue-600' onClick={handleDirectoryOpen}>查看</button>
         </section>
       )}
 
       {currentSelectedAlbumIds.length > 0 && downloadStatus === 'idle' && (
-        <section className='flex flex-row items-center p-4 border-t border-gray-200 border-solid'>
+        <section className='flex bg-[rgb(247,247,249)] flex-row items-center p-4 border-t border-gray-300 border-solid'>
           <span>当前选中 {currentSelectedAlbumIds.length} 个相册，共计 {currentSelectedPhotoTotal} 张照片。</span>
           <button className='ml-auto text-blue-600' onClick={batchDownloadPhotos}>全部导出</button>
         </section>
