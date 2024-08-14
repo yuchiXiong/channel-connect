@@ -27,132 +27,6 @@ const Home = () => {
   const connRef = useRef<DataConnection | null>(null)
   const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
 
-  // useEffect(() => {
-  //   const peer = getPeerInstance('yuchi-sender-1')
-
-  //   connRef.current = peer.connect("yuchi-receive-1");
-
-  //   connRef.current.on("open", () => {
-  //     console.log("connected to: " + connRef.current?.peer);
-  //     setConnState('open')
-  //   });
-
-  //   connRef.current.on("close", () => {
-  //     setConnState('close')
-  //   })
-  //   connRef.current.on('iceStateChanged', (state) => {
-  //     console.log('iceStateChanged', state);
-  //     if (state === 'disconnected' || state === 'failed') {
-  //       setConnState('close')
-  //     } else if (state === 'connected') {
-  //       setConnState('open')
-  //     } else if (state === 'closed') {
-  //       setConnState('close')
-  //     } else {
-  //       console.log('unknown state', state)
-  //     }
-  //   })
-  //   connRef.current.on("error", (err) => {
-  //     setConnState('error')
-  //     console.log("error", err);
-  //   })
-  //   connRef.current.on('data', (data) => {
-  //     console.log('客户端接收到消息', data)
-  //     const _data = data as IPeerMessage<string | IAlbumListItem[] | IPhotoInfo>;
-  //     if (_data.type === EPeerMessageType.Greeting) {
-  //       console.log('greeting', _data.data)
-  //     } else if (_data.type === EPeerMessageType.AlbumList) {
-
-  //       setAlbumList(_albumList => {
-
-  //         if (_albumList.length > 0) return _albumList;
-
-  //         return [..._data.data as IAlbumListItem[]]
-  //       })
-  //     } else if (_data.type === EPeerMessageType.RequestAlbumInfo) {
-
-  //       setAlbumList((_albumList) => {
-  //         const res = _data.data as IPhotoInfo;
-
-  //         const currentAlbum = _albumList.find((album) => {
-  //           return album.children.map(i => i.id).includes(res.id)
-  //         }) as IAlbumListItem;
-  //         const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
-
-  //         if (currentImg.thumb === res.thumb) return _albumList; // 如果已经存在，则不更新
-
-  //         currentImg.thumb = res.thumb;
-  //         // loadingPhotoThumbIds.current.delete(res.id);
-  //         return [..._albumList]
-  //       })
-  //     } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
-
-  //       setAlbumList((_albumList) => {
-  //         const res = _data.data as IPhotoInfo;
-
-  //         const currentAlbum = _albumList.find((album) => {
-  //           return album.children.map(i => i.id).includes(res.id)
-  //         }) as IAlbumListItem;
-  //         const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
-
-  //         if (currentImg.thumb === res.thumb) return _albumList;
-
-  //         console.log('拉取原图xxx', res);
-
-  //         currentImg.origin = res.origin;
-
-  //         setDownloadStatus((_downloadStatus) => {
-  //           let status = _downloadStatus;
-  //           /**
-  //           * ! 如果在下载过程中拉取的原图，则视为下载行为
-  //           */
-  //           if (_downloadStatus === 'downloading') {
-  //             setLastDownloadPath((_lastDownloadPath) => {
-  //               downloadByBase64(currentImg.origin, currentImg.title, _lastDownloadPath + '/' + currentAlbum.name);
-  //               setDownloadSuccessPhotoIds(ids => {
-  //                 const _downloadSuccessPhotoIds = [...new Set(ids.concat(currentImg.id))];
-  //                 console.log('_downloadSuccessPhotoIds', ids, currentImg.id, _downloadSuccessPhotoIds);
-
-  //                 /**
-  //                  * todo refactor: 先暂时用回调的方式获取实时的值
-  //                  */
-  //                 setCurrentSelectedAlbumIds((_currentSelectedAlbumIds) => {
-  //                   // 下载完成
-  //                   const allDownloadPhoto = _currentSelectedAlbumIds.reduce((acc, id) => (_albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
-  //                   console.log(_downloadSuccessPhotoIds.length, allDownloadPhoto, _currentSelectedAlbumIds)
-
-  //                   if (_downloadSuccessPhotoIds.length === allDownloadPhoto) {
-  //                     console.log('下载完成')
-  //                     status = 'success';
-  //                   }
-
-  //                   return _currentSelectedAlbumIds
-  //                 });
-
-  //                 return _downloadSuccessPhotoIds;
-  //               });
-
-  //               return _lastDownloadPath;
-  //             })
-  //           }
-  //           return status;
-  //         })
-
-  //         return [..._albumList];
-  //       });
-
-  //     }
-  //   })
-
-
-  //   return () => {
-  //     console.log("disconnecting")
-  //     connRef.current?.removeAllListeners();
-  //     connRef.current?.close();
-  //     connRef.current = null;
-  //   }
-  // }, [])
-
   useEffect(() => {
     connRef.current = getHostPeerInstance('yuchi-sender-1', 'yuchi-receive-1');
   }, []);
@@ -228,7 +102,6 @@ const Home = () => {
         if (downloadStatus === 'downloading') {
           downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name);
 
-          console.log(downloadSuccessPhotoIds, currentSelectedAlbumIds)
           setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
             const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
             // 下载完成
@@ -278,8 +151,6 @@ const Home = () => {
           // 记录当前请求的图片id
           loadingPhotoThumbIds.current.add(currentPhoto.id);
 
-          console.log("requesting", currentPhoto.id, loadingPhotoThumbIds.current)
-
           connRef.current?.send({
             type: EPeerMessageType.RequestAlbumInfo,
             data: id
@@ -297,13 +168,6 @@ const Home = () => {
       observer.disconnect();
     }
   }, [albumList.length, currentAlbumId]);
-
-  // const seedMessage = () => {
-  //   if (inputRef.current) {
-  //     console.log(inputRef.current.value)
-  //     connRef.current?.send(inputRef.current.value)
-  //   }
-  // }
 
   const downloadFile = async (index: number) => {
     const currentAlbum = albumList.find((album) => {
