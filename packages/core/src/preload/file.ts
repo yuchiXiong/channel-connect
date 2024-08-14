@@ -1,8 +1,8 @@
 import { ipcRenderer, shell } from "electron";
 import * as path from "node:path";
 
-export const downloadByBase64 = (base64Str: string, fileName: string, outPath: string) => {
-  return ipcRenderer.invoke("downloadByBase64", base64Str, fileName, outPath);
+export const downloadByBase64 = (base64Str: string, fileName: string, outPath: string, isBatchDownload: boolean) => {
+  return ipcRenderer.invoke("downloadByBase64", base64Str, fileName, outPath, isBatchDownload);
 };
 
 export const openDirectory = () => {

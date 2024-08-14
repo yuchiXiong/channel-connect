@@ -100,7 +100,7 @@ const Home = () => {
         * ! 如果在下载过程中拉取的原图，则视为下载行为
         */
         if (downloadStatus === 'downloading') {
-          downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name);
+          downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name, true);
 
           setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
             const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
@@ -184,18 +184,18 @@ const Home = () => {
   }
 
   /** 全部导出 */
-  const batchDownloadPhotos = async () => {
+  const batchDownloadPhotos = async (): Promise<void> => {
 
     const savePath = await openDirectory();
     setLastDownloadPath(savePath);
     setDownloadStatus('downloading')
 
-    currentSelectedAlbumIds.forEach(id => {
+    await Promise.all(currentSelectedAlbumIds.map(async (id) => {
       const currentAlbum = albumList.find((album) => {
         return album.id === id;
       });
       if (!currentAlbum) return [];
-      return currentAlbum.children.forEach(async (i) => {
+      return await Promise.all(currentAlbum.children.map(async (i) => {
         if (!i.origin) {
           // 需要先拉取原图，此时需要等待 WebRTC 响应以后才可以继续下载，先进行下一个任务
           connRef.current?.send({
@@ -204,16 +204,24 @@ const Home = () => {
           });
           return;
         }
-        await downloadByBase64(i.origin, i.title, savePath + '/' + currentAlbum.name);
-        setDownloadSuccessPhotoIds(ids => [...new Set([...ids, i.id])]);
-      })
+        await downloadByBase64(i.origin, i.title, savePath + '/' + currentAlbum.name, true);
+        setDownloadSuccessPhotoIds(ids => {
+          return [...new Set([...ids, i.id])];
+        });
+      }))
+    }));
+
+    setDownloadSuccessPhotoIds(downloadSuccessPhotoIds => {
+
+      // 下载完成
+      const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
+      if (downloadSuccessPhotoIds.length === allDownloadPhoto) {
+        setDownloadStatus('success');
+      }
+
+      return downloadSuccessPhotoIds
     });
 
-    // 下载完成
-    const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
-    if (downloadSuccessPhotoIds.length === allDownloadPhoto) {
-      setDownloadStatus('success');
-    }
   }
 
   const handleWindowMax = () => {

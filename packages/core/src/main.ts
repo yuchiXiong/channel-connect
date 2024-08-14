@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, screen } from "electron";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { getIPAdress } from "./utils/dev-tools";
-import { optimizer } from '@electron-toolkit/utils'
+import { optimizer } from "@electron-toolkit/utils";
 
 async function handleOpenDirectory() {
   console.log("[DEBUG] handleOpenDirectory");
@@ -29,10 +30,10 @@ const createWindow = () => {
     center: true,
     // resizable: false,
     frame: false,
-    transparent: true,  
+    transparent: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: true
+      nodeIntegration: true,
     },
   });
 
@@ -48,7 +49,6 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
-
 };
 
 // This method will be called when Electron has finished
@@ -78,17 +78,45 @@ app.on("activate", () => {
 
 app.whenReady().then(() => {
   ipcMain.handle("dialog:openDirectory", handleOpenDirectory);
-  ipcMain.handle("downloadByBase64", (e, base64Str, fileName, outPath) => {
-    // base64字符串转二进制图片数据
-    const buffer = Buffer.from(base64Str, "base64");
+  ipcMain.handle(
+    "downloadByBase64",
+    (e, base64Str, fileName, outPath, isBatchDownload) => {
+      // base64字符串转二进制图片数据
+      const buffer = Buffer.from(base64Str, "base64");
 
-    // 如果地址不存在，则创建
-    if (!fs.existsSync(outPath)) {
-      fs.mkdirSync(outPath, { recursive: true });
+      // 如果地址不存在，则创建
+      if (!fs.existsSync(outPath)) {
+        fs.mkdirSync(outPath, { recursive: true });
+      }
+
+      if (!isBatchDownload) {
+        fs.writeFileSync(path.join(outPath, fileName), buffer);
+        return;
+      }
+
+      const [pureFileName, extName] = fileName.split(".");
+      const md5 = crypto.createHash("md5").update(buffer).digest("hex");
+
+      // 如果本地有 JSON 记录文件，则读取
+      const jsonPath = path.join(outPath, "download.json");
+      if (fs.existsSync(jsonPath)) {
+        const json: Record<string, string> = JSON.parse(
+          fs.readFileSync(jsonPath, "utf-8")
+        );
+
+        if (json[`${pureFileName}-${md5}-${extName}`]) {
+          return;
+        } else {
+          fs.writeFileSync(path.join(outPath, fileName), buffer);
+          json[`${pureFileName}-${md5}-${extName}`] = fileName;
+          fs.writeFileSync(jsonPath, JSON.stringify(json));
+        }
+      } else {
+        fs.writeFileSync(path.join(outPath, fileName), buffer);
+        const json = { [`${pureFileName}-${md5}-${extName}`]: fileName };
+        fs.writeFileSync(jsonPath, JSON.stringify(json));
+      }
     }
-
-    // 将二进制图片数据写入文件
-    fs.writeFileSync(path.join(outPath, fileName), buffer);
-  });
+  );
   optimizer.registerFramelessWindowIpc();
 });

@@ -5,7 +5,8 @@ export interface IElectronAPI {
     downloadByBase64: (
       base64Str: string,
       fileName: string,
-      outputPath: string
+      outputPath: string,
+      isBatchDownload: boolean
     ) => Promise<void>;
     pathJoin: (path: string, ...paths: string[]) => string;
     openPathDirectory: (path: string) => Promise<void>;
