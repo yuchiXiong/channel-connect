@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
-import { emitter, EPeerMessageType, getHostPeerInstance, getPeerInstance, IPeerMessage } from '../utils/peer'
+import { emitter, EPeerMessageType, getHostPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
 import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Spinner } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, Cross1Icon, MinusIcon, SquareIcon, CopyIcon, } from '@radix-ui/react-icons';
@@ -319,6 +319,7 @@ const Home = () => {
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
         <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex bg-[rgb(247,247,249)] flex-col flex-[0.25]'>
           <CheckboxGroup.Item
+            value='all'
             className='sticky top-0 p-2 pl-3 text-lg items-center border-b border-solid border-gray-300 !w-full cursor-pointer hover:backdrop-blur'
           >选择相册({albumList.length})</CheckboxGroup.Item>
 

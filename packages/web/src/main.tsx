@@ -11,7 +11,7 @@ import { Theme } from '@radix-ui/themes';
 import './index.css'
 import '@radix-ui/themes/styles.css';
 import 'react-photo-view/dist/react-photo-view.css';
-import { isAndroid, isIos, isWindows } from 'environment';
+import { isAndroid, isIos } from 'environment';
 import classNames from 'classnames';
 
 
