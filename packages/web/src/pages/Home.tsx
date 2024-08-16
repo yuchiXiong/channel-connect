@@ -265,35 +265,23 @@ const Home = () => {
   return (
     <section className='flex flex-col w-screen h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
       <div
-        className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid'
+        className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid app-region-drag'
         style={{
-          'WebkitAppRegion': 'drag',
           'WebkitUserSelect': 'none'
         }}
         onDoubleClick={dbNavbarClick}
         onDoubleClickCapture={dbNavbarClick}
       >
         <p
-          className='flex items-center font-bold tracking-wider text-gray-800'
-          style={{
-            'WebkitAppRegion': 'no-drag'
-          }}
+          className='flex items-center font-bold tracking-wider text-gray-800 app-region-no-drag'
         >
           文件传输助手
           <small className='px-1 ml-1 text-xs tracking-normal text-gray-800 border border-gray-600 border-solid rounded-md'>dev</small>
         </p>
-        <MinusIcon className='ml-auto text-gray-600 cursor-pointer size-4' onClick={() => windowMin()} style={{
-          'WebkitAppRegion': 'no-drag'
-        }} />
-        {windowMaxState === 'window' && <SquareIcon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={handleWindowMax} style={{
-          'WebkitAppRegion': 'no-drag'
-        }} />}
-        {windowMaxState === 'max' && <CopyIcon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={handleWindowMin} style={{
-          'WebkitAppRegion': 'no-drag'
-        }} />}
-        <Cross1Icon className='ml-4 text-gray-600 cursor-pointer size-4' onClick={() => windowClose()} style={{
-          'WebkitAppRegion': 'no-drag'
-        }}
+        <MinusIcon className='ml-auto text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={() => windowMin()} />
+        {windowMaxState === 'window' && <SquareIcon className='ml-4 text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={handleWindowMax} />}
+        {windowMaxState === 'max' && <CopyIcon className='ml-4 text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={handleWindowMin} />}
+        <Cross1Icon className='ml-4 text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={() => windowClose()}
         />
       </div>
       {connState === 'idle' && (
