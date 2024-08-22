@@ -18,8 +18,8 @@ let peerInstance: Peer | null = null;
 
 export const getPeerInstance = (id: string, standalone = true) => {
   const options = {
-    host: "192.168.0.105",
-    port: 9000,
+    host: '116.62.176.240',
+    port: 80,
     path: "/myapp",
   };
   if (!standalone) {
