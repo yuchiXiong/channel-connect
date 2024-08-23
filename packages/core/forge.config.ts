@@ -27,7 +27,31 @@ const config: ForgeConfig = {
       },
     }),
     new MakerDMG({
+      overwrite: true,
       icon: "./icons/icon.icns",
+      iconSize: 160,
+      additionalDMGOptions: {
+        window: {
+          size: {
+            width: 660,
+            height: 400,
+          },
+        },
+      },
+      contents: (opts) => [
+        {
+          x: 180,
+          y: 170,
+          type: "file",
+          path: (opts as any).appPath,
+        },
+        {
+          x: 480,
+          y: 170,
+          type: "link",
+          path: "/Applications",
+        },
+      ],
     }),
   ],
   plugins: [
