@@ -119,6 +119,9 @@ class WebViewApp extends StatefulWidget {
 }
 
 class _WebViewAppState extends State<WebViewApp> {
+  String webPage = "http://10.241.40.9:5173/mobile";
+  // String webPage = "http://116.62.176.240:3000/mobile";
+  
   late final _webViewController = DWebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
     ..setBackgroundColor(const Color(0x00000000))
@@ -137,16 +140,16 @@ class _WebViewAppState extends State<WebViewApp> {
           }
           return NavigationDecision.navigate;
         },
-      ),
+      ), 
     )
     ..addJavaScriptObject(JsApi())
-    ..loadRequest(Uri.parse('http://192.168.0.105:5173/mobile'));
+    ..loadRequest(Uri.parse(webPage));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text(DateTime.now().toUtc().toString()),
+          title: Text(webPage),
         ),
         body: WebViewWidget(
           controller: _webViewController,

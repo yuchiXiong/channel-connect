@@ -1,5 +1,5 @@
-name: mobile
-description: "A new Flutter project."
+name: "FileTransfer"
+description: "A file transfer tool MVP based PeerJS(WebRTC) and Electron."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,6 +38,7 @@ dependencies:
   webview_flutter: ^4.8.0
   photo_manager: ^3.2.2
   dsbridge_flutter: ^1.1.0
+  flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:
   flutter_test:
@@ -91,3 +92,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+flutter_launcher_icons:
+  image_path: "assets/icon-256@2x.png"
+  image_path_android: "assets/icon-256@2x.png"
+  image_path_ios: "assets/icon-256@2x.png"
+  android: true # can specify file name here e.g. "ic_launcher"
+  ios: true # can specify file name here e.g. "My-Launcher-Icon"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  remove_alpha_ios: true
+  background_color_ios: "#ffffff"
