@@ -12,7 +12,12 @@ import * as radash from 'radash';
 import React from 'react';
 import classNames from 'classnames';
 
+import useRefresh from '../hooks/useRefresh';
+
 const Home = () => {
+
+  const refreshPage = useRefresh();
+
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('')
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
@@ -251,7 +256,6 @@ const Home = () => {
     openPathDirectory(lastDownloadPath);
   }
 
-
   /** 当前打开的相册对象 */
   const currentAlbum = albumList.find((album) => album.id === currentAlbumId) as IAlbumListItem;
 
@@ -291,7 +295,7 @@ const Home = () => {
           </Callout.Icon>
           <Callout.Text>
             <p>正在连接到手机，请确保 App 已打开……</p>
-            <small>如果您已打开 App 可以 <Link href="#" onClick={() => location.reload()}>点击这里</Link> 尝试重新连接。</small>
+            <small>如果您已打开 App 可以 <Link href="#" onClick={refreshPage}>点击这里</Link> 尝试重新连接。</small>
           </Callout.Text>
         </Callout.Root>
       )}
@@ -301,7 +305,7 @@ const Home = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            当前连接已断开， <Link href="#" onClick={() => location.reload()}>点击这里</Link> 尝试重新连接。
+            当前连接已断开， <Link href="#" onClick={refreshPage}>点击这里</Link> 尝试重新连接。
           </Callout.Text>
         </Callout.Root>
       )}
@@ -311,7 +315,7 @@ const Home = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            连接异常， 请 <Link href="#" onClick={() => location.reload()}>点击这里</Link> 尝试重新连接。
+            连接异常， 请 <Link href="#" onClick={refreshPage}>点击这里</Link> 尝试重新连接。
           </Callout.Text>
         </Callout.Root>
       )}

@@ -4,8 +4,11 @@ import { DataConnection } from "peerjs";
 import * as radash from 'radash';
 import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
 import { Button } from "@radix-ui/themes";
+import useRefresh from "../hooks/useRefresh";
 
 const MobilePage = () => {
+
+  const refreshPage = useRefresh();
 
   const [getAlbumListLoading, setGetAlbumListLoading] = useState(false);
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
@@ -128,7 +131,7 @@ const MobilePage = () => {
         </section>
       )}
 
-      <Button type="button" color="green" onClick={() => window.location.reload()} className="mt-20 " >Refresh Page</Button>
+      <Button type="button" color="green" onClick={refreshPage} className="mt-20 " >Refresh Page</Button>
 
       <p className="mt-20 text-sm text-gray-400">Built by Yuchi. {new Date().toISOString()}</p>
 
