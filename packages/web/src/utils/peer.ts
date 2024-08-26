@@ -31,37 +31,46 @@ export const getPeerInstance = (id: string, standalone = true) => {
   return peerInstance;
 };
 
-let peer: Peer | null = null;
-let conn: DataConnection | null = null;
+let hostPeer: Peer | null = null;
+let hostConn: DataConnection | null = null;
 export const getHostPeerInstance = (senderId: string, receiverId: string): DataConnection => {
-  if (conn) return conn;
+  if (hostConn) return hostConn;
   
-  peer = getPeerInstance(senderId);
+  hostPeer = getPeerInstance(senderId);
 
-  conn = peer.connect(receiverId);
+  hostConn = hostPeer.connect(receiverId);
 
-  conn.on("open", () => {
+  hostConn.on("open", () => {
     emitter.emit("open");
   });
 
-  conn.on("close", () => {
+  hostConn.on("close", () => {
     emitter.emit("close");
   });
 
-  conn.on("iceStateChanged", (state) => {
+  hostConn.on("iceStateChanged", (state) => {
     emitter.emit("iceStateChanged", state);
   });
-  conn.on("error", (err) => {
+  hostConn.on("error", (err) => {
     emitter.emit("error", err);
   });
 
-  conn.on("data", (data) => {
+  hostConn.on("data", (data) => {
     emitter.emit("data", data);
   });
 
-  return conn;
+  return hostConn;
 };
 
-// export const getJoinerPeerInstance = () => {
+let joinerPeer : Peer | null = null;
+export const getJoinerPeerInstance = (senderId: string) => {
+  if (joinerPeer) return joinerPeer;
 
-// }
+  joinerPeer = getPeerInstance(senderId, false)
+
+  joinerPeer.on("connection", (conn) => {
+    emitter.emit("connection", conn);
+  });
+
+  return joinerPeer;
+}

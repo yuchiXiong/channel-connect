@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { EPeerMessageType, getPeerInstance, IPeerMessage } from "../utils/peer";
+import { emitter, EPeerMessageType, getJoinerPeerInstance, getPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
 import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
@@ -16,10 +16,11 @@ const MobilePage = () => {
   const connRef = useRef<DataConnection | null>(null)
 
   useEffect(() => {
-    const peer = getPeerInstance('yuchi-receive-1', false)
+    getJoinerPeerInstance('yuchi-receive-1')
 
-    peer.on("connection", (conn) => {
+    emitter.on('connection', (_conn) => {
 
+      const conn = _conn as DataConnection;
       connRef.current = conn;
 
       conn.on("open", () => {
@@ -73,11 +74,7 @@ const MobilePage = () => {
 
 
     return () => {
-      console.log("disconnecting")
-      connRef.current?.removeAllListeners();
-      connRef.current?.close();
-      connRef.current = null;
-      peer.disconnect();
+      emitter.off('connection')
     }
   }, [])
 
