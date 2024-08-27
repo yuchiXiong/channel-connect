@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { emitter, EPeerMessageType, getJoinerPeerInstance, IPeerMessage } from "../utils/peer";
-import { DataConnection } from "peerjs";
+import Peer, { DataConnection } from "peerjs";
 import * as radash from 'radash';
 import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
 import { Button } from "@radix-ui/themes";
@@ -13,10 +13,12 @@ const MobilePage = () => {
   const [getAlbumListLoading, setGetAlbumListLoading] = useState(false);
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
+  const peerRef = useRef<Peer | null>(null)
   const connRef = useRef<DataConnection | null>(null)
 
   useEffect(() => {
-    getJoinerPeerInstance('yuchi-receive-1')
+    peerRef.current = getJoinerPeerInstance()
+    console.log(peerRef.current);
 
     emitter.on('connection', (_conn) => {
 
@@ -72,7 +74,6 @@ const MobilePage = () => {
       })
     });
 
-
     return () => {
       emitter.off('connection')
     }
@@ -103,6 +104,7 @@ const MobilePage = () => {
   return (
     <div className="flex flex-col items-center w-screen h-screen">
 
+
       {connState === 'idle' && (
         <section className="mt-64">
           未找到连接，请确认 PC 端是否已启动。
@@ -130,7 +132,9 @@ const MobilePage = () => {
 
       <Button type="button" color="green" onClick={refreshPage} className="mt-20 " >Refresh Page</Button>
 
-      <p className="mt-20 text-sm text-gray-400">Built by Yuchi. {new Date().toISOString()}</p>
+      <p className="mt-20 text-sm text-gray-400">{peerRef.current?.id}</p>
+
+      <p className="mt-20 text-sm text-gray-400">Built by Yuchi. Now: {new Date().toISOString()}</p>
 
     </div>
   )

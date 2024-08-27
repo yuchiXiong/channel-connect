@@ -18,6 +18,7 @@ const Home = () => {
 
   const refreshPage = useRefresh();
 
+  const [peerId, setPeerId] = useState('');
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle')
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('')
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
@@ -33,8 +34,12 @@ const Home = () => {
   const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
 
   useEffect(() => {
-    connRef.current = getHostPeerInstance('yuchi-sender-1', 'yuchi-receive-1');
-  }, []);
+    if (!peerId) return;
+    getHostPeerInstance(peerId).then(conn => {
+      connRef.current = conn;
+    });
+    console.log(connRef.current)
+  }, [peerId]);
 
   useEffect(() => {
     emitter.on("open", () => {
@@ -319,6 +324,18 @@ const Home = () => {
           </Callout.Text>
         </Callout.Root>
       )}
+
+
+      <div className='m-2'>
+        <input
+          className='w-64 h-8 border border-gray-200 border-solid'
+          onBlur={(e) => {
+            setPeerId(e.target.value)
+          }}
+        />
+        <button className='ml-2 cursor-pointer'>Connect</button>
+      </div>
+
 
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
         <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex bg-[rgb(247,247,249)] flex-col flex-[0.25]'>
