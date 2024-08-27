@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:dsbridge_flutter/dsbridge_flutter.dart';
+
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class JsApi extends JavaScriptNamespaceInterface {
   @override
@@ -119,9 +124,9 @@ class WebViewApp extends StatefulWidget {
 }
 
 class _WebViewAppState extends State<WebViewApp> {
-  String webPage = "http://10.241.40.9:5173/mobile";
-  // String webPage = "http://116.62.176.240:3000/mobile";
-  
+  // String webPage = "http://10.241.40.9:5173/mobile";
+  String webPage = "http://116.62.176.240:3000/mobile";
+
   late final _webViewController = DWebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
     ..setBackgroundColor(const Color(0x00000000))
@@ -140,7 +145,7 @@ class _WebViewAppState extends State<WebViewApp> {
           }
           return NavigationDecision.navigate;
         },
-      ), 
+      ),
     )
     ..addJavaScriptObject(JsApi())
     ..loadRequest(Uri.parse(webPage));
@@ -149,10 +154,86 @@ class _WebViewAppState extends State<WebViewApp> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text(webPage),
+          title: new GestureDetector(
+            onTap: () {
+              // _webViewController.reload();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const BarcodeScannerSimple(),
+                ),
+              );
+            },
+            child: Text(webPage),
+          ),
         ),
         body: WebViewWidget(
           controller: _webViewController,
         ));
+  }
+}
+
+
+
+class BarcodeScannerSimple extends StatefulWidget {
+  const BarcodeScannerSimple({super.key});
+
+  @override
+  State<BarcodeScannerSimple> createState() => _BarcodeScannerSimpleState();
+}
+
+class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
+  Barcode? _barcode;
+
+  Widget _buildBarcode(Barcode? value) {
+    if (value == null) {
+      return const Text(
+        'Scan something!',
+        overflow: TextOverflow.fade,
+        style: TextStyle(color: Colors.white),
+      );
+    }
+
+    return Text(
+      value.displayValue ?? 'No display value.',
+      overflow: TextOverflow.fade,
+      style: const TextStyle(color: Colors.white),
+    );
+  }
+
+  void _handleBarcode(BarcodeCapture barcodes) {
+    if (mounted) {
+      setState(() {
+        _barcode = barcodes.barcodes.firstOrNull;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Simple scanner')),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          MobileScanner(
+            onDetect: _handleBarcode,
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              height: 100,
+              color: Colors.black.withOpacity(0.4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(child: Center(child: _buildBarcode(_barcode))),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
