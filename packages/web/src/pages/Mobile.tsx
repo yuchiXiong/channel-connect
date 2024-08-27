@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { emitter, EPeerMessageType, getJoinerPeerInstance, IPeerMessage } from "../utils/peer";
-import Peer, { DataConnection } from "peerjs";
+import { DataConnection } from "peerjs";
 import * as radash from 'radash';
 import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
 import { Button } from "@radix-ui/themes";
@@ -13,28 +13,50 @@ const MobilePage = () => {
   const [getAlbumListLoading, setGetAlbumListLoading] = useState(false);
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
-  const peerRef = useRef<Peer | null>(null)
   const connRef = useRef<DataConnection | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    peerRef.current = getJoinerPeerInstance()
-    console.log(peerRef.current);
+  const getAlbumListFromNative = async (): Promise<IAlbumListItem[]> => {
+    console.log("getAlbumListFromNative")
 
-    emitter.on('connection', (_conn) => {
+    setGetAlbumListLoading(true)
+    const [error, files] = await radash.try(getAlbumList)();
+    if (error) {
+      console.error('error' + error.message)
+      return [];
+    }
+    setGetAlbumListLoading(false)
+    setAlbumList([...files])
+    return files;
+  }
 
-      const conn = _conn as DataConnection;
+  const sendWebRTCMessage = async (_albumList = albumList) => {
+    await connRef.current?.send({
+      type: EPeerMessageType.AlbumList,
+      data: _albumList.filter(i => i.id !== 'isAll')
+    } as IPeerMessage<IAlbumListItem[]>);
+  }
+
+  const handleConnect = () => {
+    const senderId = inputRef.current?.value;
+    if (!senderId) return;
+    console.log('input senderId', senderId);
+
+
+
+    getJoinerPeerInstance(senderId).then((conn) => {
+
+      console.log('joiner connection', conn);
       connRef.current = conn;
 
-      conn.on("open", () => {
-        conn.send({
-          type: EPeerMessageType.Greeting,
-          data: "hello!"
-        } as IPeerMessage<string>);
-        setConnState('open');
-        getAlbumListFromNative().then(sendWebRTCMessage)
-      });
+      conn.send({
+        type: EPeerMessageType.Greeting,
+        data: "hello!"
+      } as IPeerMessage<string>);
+      setConnState('open');
+      getAlbumListFromNative().then(sendWebRTCMessage)
 
-      conn.on("data", async (data) => {
+      emitter.on("data", async (data) => {
         console.log("received data", data);
         const _data = data as IPeerMessage<string>;
 
@@ -64,46 +86,26 @@ const MobilePage = () => {
         }
       });
 
-      conn.on('close', () => {
+      emitter.on('close', () => {
         setConnState('close')
       })
 
-      conn.on('error', (err) => {
+      emitter.on('error', (err) => {
         setConnState('error')
         console.log(err)
       })
-    });
 
-    return () => {
-      emitter.off('connection')
-    }
-  }, [])
 
-  const getAlbumListFromNative = async (): Promise<IAlbumListItem[]> => {
-    console.log("getAlbumListFromNative")
+    })
 
-    setGetAlbumListLoading(true)
-    const [error, files] = await radash.try(getAlbumList)();
-    if (error) {
-      console.error('error' + error.message)
-      return [];
-    }
-    setGetAlbumListLoading(false)
-    setAlbumList([...files])
-    return files;
-  }
 
-  const sendWebRTCMessage = async (_albumList = albumList) => {
-    await connRef.current?.send({
-      type: EPeerMessageType.AlbumList,
-      data: _albumList.filter(i => i.id !== 'isAll')
-    } as IPeerMessage<IAlbumListItem[]>);
+
+
   }
 
 
   return (
     <div className="flex flex-col items-center w-screen h-screen">
-
 
       {connState === 'idle' && (
         <section className="mt-64">
@@ -132,9 +134,12 @@ const MobilePage = () => {
 
       <Button type="button" color="green" onClick={refreshPage} className="mt-20 " >Refresh Page</Button>
 
-      <p className="mt-20 text-sm text-gray-400">{peerRef.current?.id}</p>
+      <p className="mt-20 mb-2 text-sm text-gray-400">Built by Yuchi. Now: {new Date().toISOString()}</p>
 
-      <p className="mt-20 text-sm text-gray-400">Built by Yuchi. Now: {new Date().toISOString()}</p>
+      <p className="flex flex-col w-10/12">
+        <input ref={inputRef} className="w-full mb-2 border border-gray-200 border-solid" />
+        <Button className="w-max" onClick={handleConnect}>Scan QRCode and Connect</Button>
+      </p>
 
     </div>
   )

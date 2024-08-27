@@ -34,111 +34,128 @@ const Home = () => {
   const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
 
   useEffect(() => {
-    if (!peerId) return;
-    getHostPeerInstance(peerId).then(conn => {
-      connRef.current = conn;
-    });
-    console.log(connRef.current)
-  }, [peerId]);
+    getHostPeerInstance().then((peer) => {
+      setPeerId(peer.id);
 
-  useEffect(() => {
-    emitter.on("open", () => {
-      console.log("connected to: " + connRef.current?.peer);
-      setConnState('open')
-    });
+      emitter.on('connection', _conn => {
+        connRef.current = _conn as DataConnection;
+      });
 
-    emitter.on("close", () => {
-      setConnState('close')
-    })
-    emitter.on('iceStateChanged', (state) => {
-      console.log('iceStateChanged', state);
-      if (state === 'disconnected' || state === 'failed') {
-        setConnState('close')
-      } else if (state === 'connected') {
+      emitter.on("open", () => {
+        console.log("connected to: " + connRef.current?.peer);
         setConnState('open')
-      } else if (state === 'closed') {
+      });
+
+      emitter.on("close", () => {
+        console.log('host conn close')
         setConnState('close')
-      } else {
-        console.log('unknown state', state)
-      }
-    })
-    emitter.on("error", (err) => {
-      setConnState('error')
-      console.log("error", err);
-    })
-    emitter.on('data', (data) => {
-      console.log('客户端接收到消息', data)
-      const _data = data as IPeerMessage<string | IAlbumListItem[] | IPhotoInfo>;
-      if (_data.type === EPeerMessageType.Greeting) {
-        console.log('greeting', _data.data)
-      } else if (_data.type === EPeerMessageType.AlbumList) {
+      })
 
-        setAlbumList(_albumList => {
-
-          if (_albumList.length > 0) return _albumList;
-
-          return [..._data.data as IAlbumListItem[]]
-        })
-      } else if (_data.type === EPeerMessageType.RequestAlbumInfo) {
-
-        const res = _data.data as IPhotoInfo;
-
-        const currentAlbum = albumList.find((album) => {
-          return album.children.map(i => i.id).includes(res.id)
-        }) as IAlbumListItem;
-        const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
-
-        if (currentImg.thumb === res.thumb) return albumList; // 如果已经存在，则不更新
-
-        currentImg.thumb = res.thumb;
-        // loadingPhotoThumbIds.current.delete(res.id);
-        setAlbumList([...albumList])
-      } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
-
-        const res = _data.data as IPhotoInfo;
-
-        const currentAlbum = albumList.find((album) => {
-          return album.children.map(i => i.id).includes(res.id)
-        }) as IAlbumListItem;
-        const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
-
-        if (currentImg.origin === res.origin) return;
-
-        currentImg.origin = res.origin;
-
-        /**
-        * ! 如果在下载过程中拉取的原图，则视为下载行为
-        */
-        if (downloadStatus === 'downloading') {
-          downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name, true);
-
-          setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
-            const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
-            // 下载完成
-            const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
-
-            if (newVal.length === allDownloadPhoto) {
-              console.log('下载完成')
-              setDownloadStatus('success')
-            }
-            return newVal;
-          });
-
+      emitter.on('iceStateChanged', (state) => {
+        console.log('iceStateChanged', state);
+        if (state === 'disconnected' || state === 'failed') {
+          setConnState('close')
+        } else if (state === 'connected') {
+          setConnState('open')
+        } else if (state === 'closed') {
+          setConnState('close')
+        } else {
+          console.log('unknown state', state)
         }
+      })
 
-        setAlbumList([...albumList]);
-      }
+      emitter.on("error", (err) => {
+        setConnState('error')
+        console.log("host error", err);
+      })
+
+      emitter.on('data', (data) => {
+        console.log('客户端接收到消息', data)
+        const _data = data as IPeerMessage<string | IAlbumListItem[] | IPhotoInfo>;
+        if (_data.type === EPeerMessageType.Greeting) {
+          console.log('greeting', _data.data)
+        } else if (_data.type === EPeerMessageType.AlbumList) {
+
+          setAlbumList(_albumList => {
+
+            if (_albumList.length > 0) return _albumList;
+
+            return [..._data.data as IAlbumListItem[]]
+          })
+        } else if (_data.type === EPeerMessageType.RequestAlbumInfo) {
+
+
+          setAlbumList(_albumList => {
+            const res = _data.data as IPhotoInfo;
+            console.log(_albumList, res.id)
+
+            const currentAlbum = _albumList.find((album) => {
+              return album.children.map(i => i.id).includes(res.id)
+            }) as IAlbumListItem;
+            console.log('currentAlbum', currentAlbum)
+            const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
+
+            if (currentImg.thumb === res.thumb) return _albumList; // 如果已经存在，则不更新
+
+            currentImg.thumb = res.thumb;
+
+            return [..._albumList]
+          })
+        } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
+
+          setAlbumList((_albumList) => {
+
+            const res = _data.data as IPhotoInfo;
+
+            console.log(_albumList, res.id)
+
+            const currentAlbum = _albumList.find((album) => {
+              return album.children.map(i => i.id).includes(res.id)
+            }) as IAlbumListItem;
+            const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
+
+            if (currentImg.origin === res.origin) return _albumList;
+
+            currentImg.origin = res.origin;
+
+            /**
+            * ! 如果在下载过程中拉取的原图，则视为下载行为
+            */
+            if (downloadStatus === 'downloading') {
+              downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name, true);
+
+              setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
+                const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
+                // 下载完成
+                const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (_albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
+
+                if (newVal.length === allDownloadPhoto) {
+                  console.log('下载完成')
+                  setDownloadStatus('success')
+                }
+                return newVal;
+              });
+
+            }
+
+
+            return [...albumList];
+          });
+        }
+      })
+
     })
-
     return () => {
-      emitter.off('open');
-      emitter.off('close');
-      emitter.off('iceStateChanged');
-      emitter.off('error');
-      emitter.off('data');
-    }
+      emitter.off('error')
+      emitter.off('iceStateChanged')
+      emitter.off('close')
+      emitter.off('open')
+      emitter.off('data')
+      emitter.off('connection')
 
+    }
   }, [albumList, downloadStatus, lastDownloadPath, downloadSuccessPhotoIds, currentSelectedAlbumIds]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -325,16 +342,7 @@ const Home = () => {
         </Callout.Root>
       )}
 
-
-      <div className='m-2'>
-        <input
-          className='w-64 h-8 border border-gray-200 border-solid'
-          onBlur={(e) => {
-            setPeerId(e.target.value)
-          }}
-        />
-        <button className='ml-2 cursor-pointer'>Connect</button>
-      </div>
+      <p>{peerId}</p>
 
 
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
