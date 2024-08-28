@@ -43,3 +43,7 @@ export const openPathDirectory = (path: string) => {
 export const pathJoin = (path: string, ...paths: string[]) => {
   return window.electronAPI.file.pathJoin(path, ...paths);
 }
+
+export const clipboardWriteText = (text: string) => {
+  return window.electronAPI.clipboard.writeText(text);
+}

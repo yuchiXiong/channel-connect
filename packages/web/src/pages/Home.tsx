@@ -13,6 +13,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import useRefresh from '../hooks/useRefresh';
+import PeerConnectModal from '../components/PeerConnectModal';
 
 const Home = () => {
 
@@ -29,6 +30,7 @@ const Home = () => {
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success'>('idle');
   // const [lastDownloadTime, setLastDownloadTime] = useState<string>('');
   const [lastDownloadPath, setLastDownloadPath] = useState<string>('');
+  const [open, setOpen] = useState(true);
 
   const connRef = useRef<DataConnection | null>(null)
   const loadingPhotoThumbIds = useRef<Set<string>>(new Set<string>());
@@ -290,6 +292,7 @@ const Home = () => {
 
   return (
     <section className='flex flex-col w-screen h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
+      <PeerConnectModal open={open} onOpenChange={setOpen} peerId={peerId} />
       <div
         className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid app-region-drag'
         style={{
@@ -341,9 +344,6 @@ const Home = () => {
           </Callout.Text>
         </Callout.Root>
       )}
-
-      <p>{peerId}</p>
-
 
       {(connState === "open" || albumList.length > 0) && <section className='flex flex-row flex-1 overflow-hidden'>
         <CheckboxGroup.Root defaultValue={[]} onValueChange={handleAlbumSelected} name="example" className='flex bg-[rgb(247,247,249)] flex-col flex-[0.25]'>

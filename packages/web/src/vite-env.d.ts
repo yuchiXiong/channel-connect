@@ -18,6 +18,9 @@ export interface IElectronAPI {
     min: () => void;
     close: () => void;
   };
+  clipboard: {
+    writeText: (text: string) => void;
+  }
 }
 
 declare global {
