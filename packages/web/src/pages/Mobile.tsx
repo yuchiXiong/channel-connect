@@ -2,7 +2,7 @@ import { useRef, useState } from "react"
 import { emitter, EPeerMessageType, getJoinerPeerInstance, IPeerMessage } from "../utils/peer";
 import { DataConnection } from "peerjs";
 import * as radash from 'radash';
-import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo } from "../utils/jsbridge.flutter";
+import { getAlbumList, getPhotoInfo, getPhotoOrigin, IAlbumListItem, IPhotoInfo, scanQRCode } from "../utils/jsbridge.flutter";
 import { Button } from "@radix-ui/themes";
 import useRefresh from "../hooks/useRefresh";
 
@@ -14,7 +14,6 @@ const MobilePage = () => {
   const [connState, setConnState] = useState<'idle' | 'open' | 'close' | 'error'>('idle');
   const [albumList, setAlbumList] = useState<IAlbumListItem[]>([]);
   const connRef = useRef<DataConnection | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const getAlbumListFromNative = async (): Promise<IAlbumListItem[]> => {
     console.log("getAlbumListFromNative")
@@ -37,12 +36,16 @@ const MobilePage = () => {
     } as IPeerMessage<IAlbumListItem[]>);
   }
 
-  const handleConnect = () => {
-    const senderId = inputRef.current?.value;
+  const handleConnect = async () => {
+    const [error, senderId] = await radash.try(scanQRCode)();
+
+    if (error) {
+      console.error('error' + error.message)
+      return;
+    }
+
     if (!senderId) return;
     console.log('input senderId', senderId);
-
-
 
     getJoinerPeerInstance(senderId).then((conn) => {
 
@@ -95,12 +98,7 @@ const MobilePage = () => {
         console.log(err)
       })
 
-
     })
-
-
-
-
   }
 
 
@@ -134,10 +132,9 @@ const MobilePage = () => {
 
       <Button type="button" color="green" onClick={refreshPage} className="mt-20 " >Refresh Page</Button>
 
-      <p className="mt-20 mb-2 text-sm text-gray-400">Built by Yuchi. Now: {new Date().toISOString()}</p>
+      <p className="mt-20 mb-4 text-sm text-gray-400">Built by Yuchi. Now: {new Date().toISOString()}</p>
 
       <p className="flex flex-col w-10/12">
-        <input ref={inputRef} className="w-full mb-2 border border-gray-200 border-solid" />
         <Button className="w-max" onClick={handleConnect}>Scan QRCode and Connect</Button>
       </p>
 

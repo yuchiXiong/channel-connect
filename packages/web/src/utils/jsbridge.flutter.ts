@@ -57,3 +57,17 @@ export const getPhotoOrigin = (id: string): Promise<IPhotoInfo> => {
     }
   });
 };
+
+export const scanQRCode = ():Promise<string> => {
+  console.log("scanQRCode");
+  return new Promise((resolve, reject) => {
+    try {
+      dsBridge.call("scanQRCode", {}, (res: string) => {
+        resolve(res);
+      });
+    } catch (e) {
+      reject(e);
+      console.log(e);
+    }
+  });
+}

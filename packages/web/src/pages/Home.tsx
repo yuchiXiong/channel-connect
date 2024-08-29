@@ -46,21 +46,26 @@ const Home = () => {
       emitter.on("open", () => {
         console.log("connected to: " + connRef.current?.peer);
         setConnState('open')
+        setOpen(false);
       });
 
       emitter.on("close", () => {
         console.log('host conn close')
         setConnState('close')
+        setOpen(true);
       })
 
       emitter.on('iceStateChanged', (state) => {
         console.log('iceStateChanged', state);
         if (state === 'disconnected' || state === 'failed') {
           setConnState('close')
+          setOpen(true);
         } else if (state === 'connected') {
           setConnState('open')
+          setOpen(false);
         } else if (state === 'closed') {
           setConnState('close')
+          setOpen(true);
         } else {
           console.log('unknown state', state)
         }
@@ -293,6 +298,7 @@ const Home = () => {
   return (
     <section className='flex flex-col w-screen h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
       <PeerConnectModal open={open} onOpenChange={setOpen} peerId={peerId} />
+      
       <div
         className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid app-region-drag'
         style={{
