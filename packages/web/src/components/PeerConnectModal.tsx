@@ -41,7 +41,7 @@ const PeerConnectModal: React.FC<IPeerConnectModalProps> = ({
         <div className='flex flex-col items-center w-full px-8 py-2'>
           <span className='mt-2 mb-2'>使用 App 扫码以建立连接</span>
 
-          {peerId && <QRCode value={peerId} className='mx-auto' />}
+          {peerId && <QRCode value={peerId} className='mx-auto w-52 h-52' />}
           <span className='flex items-center mt-3 text-sm text-gray-500 cursor-pointer' onClick={handleCopy}>
             {copied ? <CheckIcon color='green' className='mr-1' /> : <ClipboardCopyIcon className='mr-1' />}
             {peerId}
