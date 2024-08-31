@@ -1,6 +1,6 @@
 {
-  "name": "文件传输助手",
-  "productName": "Channel Connect",
+  "name": "channel-connect",
+  "productName": "文件传输助手",
   "version": "0.1.0",
   "description": "A file transfer tool MVP based PeerJS(WebRTC) and Electron.",
   "main": ".vite/build/main.js",
