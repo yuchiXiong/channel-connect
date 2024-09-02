@@ -3,12 +3,7 @@
   <hr />
   <h3>A file transfer tool MVP based PeerJS(WebRTC) and Electron.</h3>
 
-  <figure>
-    <video src="./example.mp4" width="420" controls></video>
-    <figcaption>
-      <!-- <p align="center">自由的 Markdown 管理工具。</p> -->
-    </figcaption>
-  </figure>
+  https://github.com/user-attachments/assets/fffc888d-027e-464c-8ef2-7722dcd79bf6
 </div>
 
 <br />
