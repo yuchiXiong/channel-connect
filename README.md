@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./packages/core/icons/icon.ico" alt="Logo" />
+  <img src="./packages/core/icons/icon_128x128@2x.png" alt="Logo" />
   <hr />
   <h3>A file transfer tool MVP based PeerJS(WebRTC) and Electron.</h3>
 
