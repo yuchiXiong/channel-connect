@@ -1,6 +1,20 @@
-# Channel Connect
+<div align="center">
+  <img src="./packages/core/icons/icon.ico" alt="Logo" />
+  <hr />
+  <h3>A file transfer tool MVP based PeerJS(WebRTC) and Electron.</h3>
 
-A file transfer tool MVP based PeerJS(WebRTC) and Electron.
+  <figure>
+    <video src="./example.mp4" width="420" controls></video>
+    <figcaption>
+      <!-- <p align="center">自由的 Markdown 管理工具。</p> -->
+    </figcaption>
+  </figure>
+</div>
+
+<br />
+
+## Features
+- [x] file transfer by PeerJS
 
 ## Build
 
