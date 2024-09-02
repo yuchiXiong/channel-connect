@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { emitter, EPeerMessageType, getHostPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
-import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Spinner } from '@radix-ui/themes';
+import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Spinner, Tooltip } from '@radix-ui/themes';
 import { InfoCircledIcon, DownloadIcon, Cross1Icon, MinusIcon, SquareIcon, CopyIcon, } from '@radix-ui/react-icons';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
 import { downloadByBase64, openDirectory, openPathDirectory, windowClose, windowMax, windowMin } from '../utils/jsbridge.electron';
@@ -298,7 +298,7 @@ const Home = () => {
   return (
     <section className='flex flex-col w-screen h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
       <PeerConnectModal open={open} onOpenChange={setOpen} peerId={peerId} />
-      
+
       <div
         className='box-border flex items-center justify-center w-full px-4 py-2 border-b border-gray-100 border-solid app-region-drag'
         style={{
@@ -311,7 +311,9 @@ const Home = () => {
           className='flex items-center font-bold tracking-wider text-gray-800 app-region-no-drag'
         >
           文件传输助手
-          <small className='px-1 ml-1 text-xs tracking-normal text-gray-800 border border-gray-600 border-solid rounded-md'>dev</small>
+          <Tooltip content={location.href}>
+            <small className='px-1 ml-1 text-xs tracking-normal text-gray-800 border border-gray-600 border-solid rounded-md'>dev</small>
+          </Tooltip>
         </p>
         <MinusIcon className='ml-auto text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={() => windowMin()} />
         {windowMaxState === 'window' && <SquareIcon className='ml-4 text-gray-600 cursor-pointer size-4 app-region-no-drag' onClick={handleWindowMax} />}
