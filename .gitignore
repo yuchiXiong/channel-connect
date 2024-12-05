@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# FVM Version Cache
+.fvm/

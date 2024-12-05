@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 import Home from './pages/Home.tsx';
 import MobilePage from './pages/Mobile.tsx';
+import StreamPage from './pages/Stream.tsx';
 import VConsole from 'vconsole';
 import { Theme } from '@radix-ui/themes';
 import './index.css'
@@ -27,6 +28,10 @@ const router = createBrowserRouter([
   {
     path: '/mobile',
     element: <MobilePage />,
+  },
+  {
+    path: '/stream',
+    element: <StreamPage />
   }
 ]);
 
