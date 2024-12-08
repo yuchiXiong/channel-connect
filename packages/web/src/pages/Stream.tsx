@@ -33,20 +33,22 @@ const StreamPage = () => {
 
 
     // 创建 webRTC 连接
-    const peer = new Peer('sender', {
+    const peer = new Peer('senderweb', {
       host: "116.62.176.240",
       port: 80,
       path: "/myapp",
+      debug: 3
     })
     peer.on("open", async (id) => {
       console.log("My peer ID is: " + id);
 
+      
       const conn = peer.connect('receiver');
 
       const fileId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const fileName = file.name;
       const fileSize = file.size;
-      
+
       const stream = file.stream();
       const reader = stream.getReader();
 
@@ -60,16 +62,16 @@ const StreamPage = () => {
         conn.send({ fileId, fileName, chunk: value, type: file.type, flag: 'chunk', index });
 
         await new Promise((resolve) =>
-          setTimeout(resolve, 50)
+          setTimeout(resolve, 1000)
         );
 
         readChunk(index + 1); // 递归读取下一块数据
       }
 
       conn.send({ fileId, fileName, fileSize, flag: 'start', type: file.type });
-      
+
       await new Promise((resolve) =>
-        setTimeout(resolve, 50)
+        setTimeout(resolve, 1000)
       );
 
       readChunk(0);
@@ -82,6 +84,7 @@ const StreamPage = () => {
       host: "116.62.176.240",
       port: 80,
       path: "/myapp",
+      debug: 3
     })
     peer.on("open", (id) => {
       console.log("My peer ID is: " + id);
@@ -129,11 +132,17 @@ const StreamPage = () => {
           }
         })
       })
+
+      peer.on('close', () => {
+        console.log('close')
+      })
     })
   }
 
+  console.log(fileRef.current)
+
   return (
-    <section className='flex flex-col items-center justify-center h-screen backdrop-blur-[100px] backdrop-saturate-[240%]'>
+    <section className='flex flex-col items-center justify-center h-full backdrop-blur-[100px] backdrop-saturate-[240%]'>
 
       {usp.get('id')}
 
@@ -144,8 +153,10 @@ const StreamPage = () => {
 
       {
         // fileInfoRef.current.current === fileInfoRef.current.fileSize &&
-        fileRef.current && <video key={counter} src={URL.createObjectURL(new Blob(Object.values(fileRef.current), { type: fileInfoRef.current.type }))} controls height={600} width={480}></video>}
-
+        fileRef.current && <video key={counter} src={URL.createObjectURL(new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }))} controls height={600} width={480}></video>}
+      {/* {
+        // fileInfoRef.current.current === fileInfoRef.current.fileSize &&
+        fileRef.current && <img key={counter} src={URL.createObjectURL(new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }))} height={600} width={480}></img>} */}
 
       <span>FileName: {fileInfoRef.current.fileName}</span>
       <span>FileId: {fileInfoRef.current.fileId}</span>
