@@ -2,12 +2,14 @@ import Peer from 'peerjs';
 import { chooseFile } from '../utils/chooseFile';
 import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react';
+import { Box, Progress } from '@radix-ui/themes';
 
 const StreamPage = () => {
 
+  let preTimeStamp = 0;
   const location = useLocation();
 
-  const [counter, setCounter] = useState(0);
+  const [kbps, setKbps] = useState(0);
   const fileInfoRef = useRef<{
     fileId: string,
     fileName: string,
@@ -37,7 +39,6 @@ const StreamPage = () => {
       host: "116.62.176.240",
       port: 80,
       path: "/myapp",
-      debug: 3
     })
     peer.on("open", async (id) => {
       console.log("My peer ID is: " + id);
@@ -84,7 +85,6 @@ const StreamPage = () => {
       host: "116.62.176.240",
       port: 80,
       path: "/myapp",
-      debug: 3
     })
     peer.on("open", (id) => {
       console.log("My peer ID is: " + id);
@@ -113,6 +113,8 @@ const StreamPage = () => {
               current: 0,
               type: _data.type
             }
+            setKbps(0);
+            preTimeStamp = new Date().getTime();
           } else if (_data.flag === 'end') {
             // 结束
             console.log('end')
@@ -129,6 +131,13 @@ const StreamPage = () => {
               current: Object.values(fileRef.current).reduce((pre, cur) => pre + cur.byteLength, 0),
               type: _data.type
             }
+            const nowTimeStamp = new Date().getTime();
+            const timeDiff = (nowTimeStamp - preTimeStamp) / 1000;
+            preTimeStamp = nowTimeStamp;
+            setKbps((pre) => {
+              if (timeDiff === 0) return pre;
+              return (_data.chunk?.length || 0) / timeDiff;
+            })
           }
         })
       })
@@ -139,7 +148,8 @@ const StreamPage = () => {
     })
   }
 
-  console.log(fileRef.current)
+  const currentSize = Object.values(fileRef.current).reduce((pre, cur) => pre + cur.length, 0);
+  const currentProgress = ((currentSize / fileInfoRef.current.fileSize || 0) * 100).toFixed(0);
 
   return (
     <section className='flex flex-col items-center justify-center h-full backdrop-blur-[100px] backdrop-saturate-[240%]'>
@@ -149,20 +159,16 @@ const StreamPage = () => {
       <button className='px-4 py-2 my-2 border border-red-800 border-dashed' onClick={handleSend}>我要发送</button>
       <button className='px-4 py-2 my-2 border border-red-800 border-dashed' onClick={handleReady}>我要接收</button>
 
-      <button className='px-4 py-2 my-2 border border-red-800 border-dashed' onClick={() => setCounter(counter => counter + 1)}>Refresh Page</button>
-
-      {
-        // fileInfoRef.current.current === fileInfoRef.current.fileSize &&
-        fileRef.current && <video key={counter} src={URL.createObjectURL(new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }))} controls height={600} width={480}></video>}
-      {/* {
-        // fileInfoRef.current.current === fileInfoRef.current.fileSize &&
-        fileRef.current && <img key={counter} src={URL.createObjectURL(new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }))} height={600} width={480}></img>} */}
+      {currentProgress === '100' && <video src={URL.createObjectURL(new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }))} controls height={600} width={480}></video>}
 
       <span>FileName: {fileInfoRef.current.fileName}</span>
       <span>FileId: {fileInfoRef.current.fileId}</span>
-      <span>FileSize: {fileInfoRef.current.fileSize / 1024 / 1024} MB</span>
-      <span>current: {Object.values(fileRef.current).reduce((pre, cur) => pre + cur.byteLength, 0) / 1024 / 1024} MB</span>
-      {/* <span>{Math.floor((file?.byteLength || 0) / 1024 / 1024)} MB</span> */}
+      <span>FileSize: {(fileInfoRef.current.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+      <span>current: {(currentSize / 1024 / 1024).toFixed(2)} MB</span>
+      <span>Speed: {(kbps / 1024 / 1024).toFixed(2)} MB/s</span>
+      <Box width="300px" className='!flex items-center'>
+        <Progress value={Number(currentProgress)} color="cyan" highContrast />{currentProgress} %
+      </Box>
     </section >
   )
 }

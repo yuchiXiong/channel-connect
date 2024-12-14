@@ -156,6 +156,10 @@ class _WebViewAppState extends State<WebViewApp> {
     final connection = peer.connect('receiver');
     conn = connection;
 
+    if (conn.dataChannel?.bufferedAmountLowThreshold != null) {
+      conn.dataChannel!.bufferedAmountLowThreshold = 256 * 1024;
+    }
+
     conn.on("open").listen((event) {
       print("[DEBUG] dart peerjs: connected");
       setState(() {
@@ -218,6 +222,54 @@ class _WebViewAppState extends State<WebViewApp> {
     return mimeTypes['.${extension.toLowerCase()}'];
   }
 
+  // Stream<Uint8List> createDynamicFileStream(String filePath) async* {
+  //   const int minChunkSize = 4 * 1024; // 最小块大小(4kb)
+  //   const int maxChunkSize = 512 * 1024; // 最大块大小(512kb)
+  //   int currentChunkSize = 16 * 1024; // 初始块大小(16kb)
+
+  //   final file = File(filePath);
+  //   final fileLength = await file.length();
+  //   final raf = await file.open();
+
+  //   try {
+  //     int offset = 0;
+
+  //     while (offset < fileLength) {
+  //       final remaining = fileLength - offset;
+  //       final readSize =
+  //           remaining < currentChunkSize ? remaining : currentChunkSize;
+
+  //       final buffer = Uint8List(readSize);
+  //       final bytesRead = await raf.readInto(buffer);
+
+  //       if (bytesRead > 0) {
+  //         yield buffer.sublist(0, bytesRead);
+
+  //         // // 如果缓冲区空闲，动态增大块大小
+  //         // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
+  //         //   currentChunkSize = (currentChunkSize * 2)
+  //         //       .clamp(minChunkSize, maxChunkSize)
+  //         //       .toInt();
+  //         // }
+
+  //         // // 动态调整块大小
+  //         // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
+  //         //   currentChunkSize = (currentChunkSize / 2)
+  //         //       .clamp(minChunkSize, maxChunkSize)
+  //         //       .toInt();
+  //         //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
+  //         // }
+
+
+  //       }
+
+  //       offset += bytesRead;
+  //     }
+  //   } finally {
+  //     await raf.close();
+  //   }
+  // }
+
   void sendFileFromAlbum() async {
     final picker = ImagePicker();
     final XFile? media = await picker.pickMedia();
@@ -230,23 +282,13 @@ class _WebViewAppState extends State<WebViewApp> {
     final File file = File(media.path);
 
     // 打开文件流
-    // final Stream<List<int>> stream = file.openRead();
+    final Stream<List<int>> stream = file.openRead();
+    // final stream = createDynamicFileStream(media.path);
 
-    const int maxChunkSize = 320 * 1024; // 最大块大小
-    const int minChunkSize = 64 * 1024;  // 最小块大小
-    int currentChunkSize = 16 * 1024;   // 起始块大小
+    // const int maxChunkSize = 320 * 1024; // 最大块大小
+    // const int minChunkSize = 64 * 1024; // 最小块大小
+    // int currentChunkSize = maxChunkSize; // 起始块大小
 
-    final stream = file.openRead().transform(StreamTransformer.fromBind((input) {
-      // 二次分块逻辑：根据 currentChunkSize 重新分片
-      return input.expand((chunk) {
-        List<List<int>> chunks = [];
-        for (int i = 0; i < chunk.length; i += currentChunkSize) {
-          final end = (i + currentChunkSize > chunk.length) ? chunk.length : i + currentChunkSize;
-          chunks.add(chunk.sublist(i, end));
-        }
-        return chunks;
-      });
-    }));
 
     sendMessage(jsonEncode({
       "fileId": file.hashCode,
@@ -258,23 +300,39 @@ class _WebViewAppState extends State<WebViewApp> {
 
     int index = 0;
 
-
     // // 读取流数据
     await for (List<int> chunk in stream) {
-      // while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
-      //   await Future.delayed(const Duration(milliseconds: 100));
-      // }
+      while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
 
       // 如果缓冲区满，则动态减小块大小
-      while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
-        currentChunkSize = (currentChunkSize / 2).clamp(minChunkSize, maxChunkSize).toInt();
-        await Future.delayed(Duration(milliseconds: 50)); // 等待缓冲区变小
-      }
+      // while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
+      //   currentChunkSize =
+      //       (currentChunkSize / 2).clamp(minChunkSize, maxChunkSize).toInt();
+      //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
+      // }
 
       // 如果缓冲区空闲，动态增大块大小
-      if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
-        currentChunkSize = (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize).toInt();
-      }
+      // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
+      //   currentChunkSize =
+      //       (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize).toInt();
+      // }
+
+          //       // 如果缓冲区空闲，动态增大块大小
+          // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
+          //   currentChunkSize = (currentChunkSize * 2)
+          //       .clamp(minChunkSize, maxChunkSize)
+          //       .toInt();
+          // }
+
+          // // 动态调整块大小
+          // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
+          //   currentChunkSize = (currentChunkSize / 2)
+          //       .clamp(minChunkSize, maxChunkSize)
+          //       .toInt();
+          //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
+          // }
 
       Uint8List bytes = Uint8List.fromList(chunk);
       print("[DEBUG] Read chunk of size: ${bytes.length}");
