@@ -125,13 +125,6 @@ class WebViewApp extends StatefulWidget {
 }
 
 class _WebViewAppState extends State<WebViewApp> {
-  // String webPage = "http://10.241.40.9:5173/mobile";
-  // String webPage = "http://192.168.0.109:5173/mobile";
-  // String webPage = "https://www.bilibili.com/";
-  // String webPage = "http://116.62.176.240:3000/mobile";
-
-  // late JsApi _jsApi;
-  // late final DWebViewController _webViewController;
 
   late Peer peer;
   String? peerId;
@@ -365,32 +358,6 @@ class _WebViewAppState extends State<WebViewApp> {
   @override
   void initState() {
     super.initState();
-    // print('initState');
-    // _jsApi = JsApi();
-    // _jsApi.registerFunction(scanQRCode, functionName: 'scanQRCode');
-    // _webViewController = DWebViewController()
-    //   ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    //   ..setBackgroundColor(const Color(0x00000000))
-    //   ..setNavigationDelegate(
-    //     NavigationDelegate(
-    //       onProgress: (int progress) {
-    //         // Update loading bar.
-    //       },
-    //       onPageStarted: (String url) {},
-    //       onPageFinished: (String url) {},
-    //       onHttpError: (HttpResponseError error) {},
-    //       onWebResourceError: (WebResourceError error) {},
-    //       onNavigationRequest: (NavigationRequest request) {
-    //         if (request.url.startsWith('https://www.youtube.com/')) {
-    //           return NavigationDecision.prevent;
-    //         }
-    //         return NavigationDecision.navigate;
-    //       },
-    //     ),
-    //   )
-    //   ..addJavaScriptObject(_jsApi)
-    //   ..loadRequest(Uri.parse(webPage));
-
     // peer.on("open").listen((id) {
     //   setState(() {
     //     peerId = peer.id;
@@ -428,31 +395,12 @@ class _WebViewAppState extends State<WebViewApp> {
     // });
   }
 
-  // void scanQRCode(dynamic msg, CompletionHandler handler) async {
-  //   print("[DSBridge] scanQRCode");
-  //   final result = await Navigator.push(
-  //     context,
-  //     CupertinoPageRoute(
-  //       builder: (context) => const BarcodeScannerListView(),
-  //     ),
-  //   );
-
-  //   if (!context.mounted) {
-  //     handler.complete('');
-  //   } else {
-  //     print("扫码页返回数据: ${result}");
-  //     handler.complete(result);
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text('WebRTC')),
         body: Text('Hello World'),
-        // WebViewWidget(
-        //   controller: _webViewController,
-        // ),
         floatingActionButton: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           mainAxisSize: MainAxisSize.max,
