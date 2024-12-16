@@ -1,4 +1,4 @@
-import Peer from 'peerjs';
+import Peer, { DataConnection } from 'peerjs';
 import { chooseFile } from '../utils/chooseFile';
 import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react';
@@ -7,9 +7,10 @@ import { Box, Progress } from '@radix-ui/themes';
 const StreamPage = () => {
 
   let preTimeStamp = 0;
+  let preSecondBytesReceived = 0;
   const location = useLocation();
 
-  const [kbps, setKbps] = useState(0);
+  const [bytesReceived, setBytesReceived] = useState(0);
   const fileInfoRef = useRef<{
     fileId: string,
     fileName: string,
@@ -24,8 +25,46 @@ const StreamPage = () => {
     type: ''
   });
   const fileRef = useRef<Record<string, Uint8Array>>({});
+  const rtcStatusTimerRef = useRef<number>(-1);
 
   const usp = new URLSearchParams(location.search);
+
+  const startSearchRTCStatus = (conn: DataConnection) => {
+    const timer = setInterval(() => {
+      conn.peerConnection.getStats(null).then((stats) => {
+        stats.forEach((report) => {
+          if (report.type === 'data-channel' && report.dataChannelIdentifier === conn.dataChannel.id) {
+            const currentStats = {
+              bytesSent: report.bytesSent || 0,
+              bytesReceived: report.bytesReceived || 0,
+              messagesSent: report.messagesSent || 0,
+              messagesReceived: report.messagesReceived || 0,
+              timestamp: report.timestamp || 0,
+            }
+            console.log(`dataChannel: `, currentStats)
+            const timeDiff = (currentStats.timestamp - preTimeStamp) / 1000; // 转为秒
+            // const bytesReceivedDiff = currentStats.bytesReceived - preSecondBytesReceived;
+            const currentBytesReceived = new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }).size;
+            const bytesReceivedDiff = currentBytesReceived - preSecondBytesReceived;
+
+            const receiveSpeed = Number(((bytesReceivedDiff / timeDiff) / 1024 / 1024).toFixed(2)); // MB/s
+            setBytesReceived(receiveSpeed)
+            preSecondBytesReceived = currentBytesReceived;
+            preTimeStamp = currentStats.timestamp;
+          }
+        });
+
+      });
+    }, 1000);
+    rtcStatusTimerRef.current = timer;
+  }
+
+  const stopSearchRTCStatus = () => {
+    if (rtcStatusTimerRef.current !== -1) {
+      clearInterval(rtcStatusTimerRef.current);
+      rtcStatusTimerRef.current = -1;
+    }
+  }
 
 
   const handleSend = async () => {
@@ -43,7 +82,7 @@ const StreamPage = () => {
     peer.on("open", async (id) => {
       console.log("My peer ID is: " + id);
 
-      
+
       const conn = peer.connect('receiver');
 
       const fileId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -101,10 +140,10 @@ const StreamPage = () => {
             type: string;
             index: number;
           }
-          console.log(data);
+          // console.log(data);
           // 合并文件
           if (_data.flag === 'start') {
-            console.log('init file')
+            console.log('init file', new Date().getTime());
             fileRef.current = {};
             fileInfoRef.current = {
               fileId: _data.fileId,
@@ -113,11 +152,14 @@ const StreamPage = () => {
               current: 0,
               type: _data.type
             }
-            setKbps(0);
-            preTimeStamp = new Date().getTime();
+            stopSearchRTCStatus();
+            startSearchRTCStatus(conn);
           } else if (_data.flag === 'end') {
             // 结束
-            console.log('end')
+            console.log('end', new Date().getTime());
+            setTimeout(() => {
+              stopSearchRTCStatus();
+            }, 1001)
           } else {
             // 添加数据
             if (fileRef.current === undefined) return;
@@ -131,13 +173,6 @@ const StreamPage = () => {
               current: Object.values(fileRef.current).reduce((pre, cur) => pre + cur.byteLength, 0),
               type: _data.type
             }
-            const nowTimeStamp = new Date().getTime();
-            const timeDiff = (nowTimeStamp - preTimeStamp) / 1000;
-            preTimeStamp = nowTimeStamp;
-            setKbps((pre) => {
-              if (timeDiff === 0) return pre;
-              return (_data.chunk?.length || 0) / timeDiff;
-            })
           }
         })
       })
@@ -165,7 +200,7 @@ const StreamPage = () => {
       <span>FileId: {fileInfoRef.current.fileId}</span>
       <span>FileSize: {(fileInfoRef.current.fileSize / 1024 / 1024).toFixed(2)} MB</span>
       <span>current: {(currentSize / 1024 / 1024).toFixed(2)} MB</span>
-      <span>Speed: {(kbps / 1024 / 1024).toFixed(2)} MB/s</span>
+      <span>Speed By RTC bytesSent: {bytesReceived} MB/s</span>
       <Box width="300px" className='!flex items-center'>
         <Progress value={Number(currentProgress)} color="cyan" highContrast />{currentProgress} %
       </Box>
