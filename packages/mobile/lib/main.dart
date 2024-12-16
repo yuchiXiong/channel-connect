@@ -2,130 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:FileTransfer/barcode_scanner_listview.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:photo_manager/photo_manager.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:dsbridge_flutter/dsbridge_flutter.dart';
 import 'package:peerdart/peerdart.dart';
-// class JsApi extends JavaScriptNamespaceInterface {
-//   @override
-//   void register() {
-//     registerFunction(getAlbumList, functionName: 'getAlbumList');
-//     registerFunction(getPhotoThumb, functionName: 'getPhotoThumb');
-//     registerFunction(getPhotoOrigin, functionName: 'getPhotoOrigin');
-//   }
-
-//   void getAlbumList(dynamic msg, CompletionHandler handler) async {
-//     print("[DSBridge] getAlbumList");
-//     final PermissionState ps = await PhotoManager
-//         .requestPermissionExtend(); // the method can use optional param `permission`.
-//     print('PermissionState: $ps');
-//     if (ps.isAuth || ps.hasAccess) {
-//       // Granted
-//       // You can to get assets here.
-
-//       // Access will continue, but the amount visible depends on the user's selection.
-//       final List<AssetPathEntity> list =
-//           await PhotoManager.getAssetPathList(hasAll: false);
-
-//       final resultListTask = list.map((path) async {
-//         // 获取每个相册的所有照片
-//         final count = await path.assetCountAsync;
-//         final List<AssetEntity> entities = await path.getAssetListPaged(
-//           page: 0,
-//           size: count,
-//         );
-
-//         final resultList = entities.map((entity) {
-//           return {
-//             'id': entity.id,
-//             'title': entity.title,
-//             'width': entity.width,
-//             'height': entity.height,
-//             'createDateSecond': entity.createDateSecond,
-//             'thumb': '',
-//             'origin': '',
-//           };
-//         });
-
-//         return {
-//           'id': path.id,
-//           'name': path.name,
-//           "count": count,
-//           "cover": base64Encode((await entities.first.thumbnailData)!),
-//           "children": resultList.toList(),
-//         };
-//       });
-
-//       final resultList = await Future.wait(resultListTask);
-
-//       handler.complete(resultList.toList());
-//     } else {
-//       // Limited(iOS) or Rejected, use `==` for more precise judgements.
-//       // You can call `PhotoManager.openSetting()` to open settings for further steps.
-//     }
-//   }
-
-//   void getPhotoThumb(dynamic msg, CompletionHandler handler) async {
-//     print("[DSBridge] getPhotoThumb");
-
-//     final entity = await AssetEntity.fromId(msg['id']);
-
-//     if (entity != null) {
-//       final thumb = await entity.thumbnailData;
-//       handler.complete({
-//         'id': entity.id,
-//         'thumb': base64Encode(thumb!),
-//         "origin": "",
-//         "title": "",
-//         "width": 0,
-//         "height": 0
-//       });
-//     } else {
-//       handler.complete(null);
-//     }
-//   }
-
-//   void getPhotoOrigin(dynamic msg, CompletionHandler handler) async {
-//     print("[DSBridge] getPhotoOrigin");
-
-//     final entity = await AssetEntity.fromId(msg['id']);
-
-//     if (entity != null) {
-//       final origin = await entity.originBytes;
-//       handler.complete({
-//         'id': entity.id,
-//         'origin': base64Encode(origin!),
-//         "thumb": "",
-//         "title": "",
-//         "width": 0,
-//         "height": 0
-//       });
-//     } else {
-//       handler.complete(null);
-//     }
-//   }
-// }
 
 void main() {
   runApp(const MaterialApp(
-    home: WebViewApp(),
+    home: HomePage(),
   ));
 }
 
-class WebViewApp extends StatefulWidget {
-  const WebViewApp({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<WebViewApp> createState() => _WebViewAppState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _WebViewAppState extends State<WebViewApp> {
-
+class _HomePageState extends State<HomePage> {
   late Peer peer;
   String? peerId;
   late DataConnection conn;
@@ -198,6 +94,8 @@ class _WebViewAppState extends State<WebViewApp> {
     conn.sendBinary(uint8List);
   }
 
+  ///
+  /// 根据文件名推断文件类型
   String? getMimeTypeFromExtension(String filePath) {
     final Map<String, String> mimeTypes = {
       '.jpg': 'image/jpeg',
@@ -215,55 +113,8 @@ class _WebViewAppState extends State<WebViewApp> {
     return mimeTypes['.${extension.toLowerCase()}'];
   }
 
-  // Stream<Uint8List> createDynamicFileStream(String filePath) async* {
-  //   const int minChunkSize = 4 * 1024; // 最小块大小(4kb)
-  //   const int maxChunkSize = 512 * 1024; // 最大块大小(512kb)
-  //   int currentChunkSize = 16 * 1024; // 初始块大小(16kb)
-
-  //   final file = File(filePath);
-  //   final fileLength = await file.length();
-  //   final raf = await file.open();
-
-  //   try {
-  //     int offset = 0;
-
-  //     while (offset < fileLength) {
-  //       final remaining = fileLength - offset;
-  //       final readSize =
-  //           remaining < currentChunkSize ? remaining : currentChunkSize;
-
-  //       final buffer = Uint8List(readSize);
-  //       final bytesRead = await raf.readInto(buffer);
-
-  //       if (bytesRead > 0) {
-  //         yield buffer.sublist(0, bytesRead);
-
-  //         // // 如果缓冲区空闲，动态增大块大小
-  //         // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
-  //         //   currentChunkSize = (currentChunkSize * 2)
-  //         //       .clamp(minChunkSize, maxChunkSize)
-  //         //       .toInt();
-  //         // }
-
-  //         // // 动态调整块大小
-  //         // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
-  //         //   currentChunkSize = (currentChunkSize / 2)
-  //         //       .clamp(minChunkSize, maxChunkSize)
-  //         //       .toInt();
-  //         //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
-  //         // }
-
-
-  //       }
-
-  //       offset += bytesRead;
-  //     }
-  //   } finally {
-  //     await raf.close();
-  //   }
-  // }
-
   void sendFileFromAlbum() async {
+    // 从相册选择文件
     final picker = ImagePicker();
     final XFile? media = await picker.pickMedia();
 
@@ -276,13 +127,8 @@ class _WebViewAppState extends State<WebViewApp> {
 
     // 打开文件流
     final Stream<List<int>> stream = file.openRead();
-    // final stream = createDynamicFileStream(media.path);
 
-    // const int maxChunkSize = 320 * 1024; // 最大块大小
-    // const int minChunkSize = 64 * 1024; // 最小块大小
-    // int currentChunkSize = maxChunkSize; // 起始块大小
-
-
+    // 发送开始信号
     sendMessage(jsonEncode({
       "fileId": file.hashCode,
       "fileName": file.path.split('/').last,
@@ -292,7 +138,6 @@ class _WebViewAppState extends State<WebViewApp> {
     }));
 
     int index = 0;
-
     // // 读取流数据
     await for (List<int> chunk in stream) {
       while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
@@ -312,23 +157,22 @@ class _WebViewAppState extends State<WebViewApp> {
       //       (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize).toInt();
       // }
 
-          //       // 如果缓冲区空闲，动态增大块大小
-          // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
-          //   currentChunkSize = (currentChunkSize * 2)
-          //       .clamp(minChunkSize, maxChunkSize)
-          //       .toInt();
-          // }
+      //       // 如果缓冲区空闲，动态增大块大小
+      // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
+      //   currentChunkSize = (currentChunkSize * 2)
+      //       .clamp(minChunkSize, maxChunkSize)
+      //       .toInt();
+      // }
 
-          // // 动态调整块大小
-          // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
-          //   currentChunkSize = (currentChunkSize / 2)
-          //       .clamp(minChunkSize, maxChunkSize)
-          //       .toInt();
-          //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
-          // }
+      // // 动态调整块大小
+      // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
+      //   currentChunkSize = (currentChunkSize / 2)
+      //       .clamp(minChunkSize, maxChunkSize)
+      //       .toInt();
+      //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
+      // }
 
       Uint8List bytes = Uint8List.fromList(chunk);
-      print("[DEBUG] Read chunk of size: ${bytes.length}");
       sendMessage(jsonEncode({
         "fileId": file.hashCode,
         "fileName": file.path.split('/').last,
@@ -340,6 +184,7 @@ class _WebViewAppState extends State<WebViewApp> {
       index++;
     }
 
+    // 发送结束标志
     sendMessage(jsonEncode({
       "fileId": file.hashCode,
       "fileName": file.path.split('/').last,
@@ -347,8 +192,6 @@ class _WebViewAppState extends State<WebViewApp> {
       "flag": 'end',
       "type": getMimeTypeFromExtension(file.path),
     }));
-
-    print("[DEBUG] Finished reading image as stream.");
   }
 
   void closeConnection() {
@@ -394,7 +237,6 @@ class _WebViewAppState extends State<WebViewApp> {
     //   });
     // });
   }
-
 
   @override
   Widget build(BuildContext context) {
