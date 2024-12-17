@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,11 +42,7 @@ class _HomePageState extends State<HomePage> {
             secure: false,
             path: '/myapp'));
     final connection = peer.connect('receiver');
-    conn = connection;
-
-    if (conn.dataChannel?.bufferedAmountLowThreshold != null) {
-      conn.dataChannel!.bufferedAmountLowThreshold = 256 * 1024;
-    }
+    conn = connection; 
 
     conn.on("open").listen((event) {
       print("[DEBUG] dart peerjs: connected");
@@ -125,72 +120,66 @@ class _HomePageState extends State<HomePage> {
 
     final File file = File(media.path);
 
-    // 打开文件流
-    final Stream<List<int>> stream = file.openRead();
+    int fileId = file.hashCode;
+    int fileSize = file.lengthSync();
+    String fileName = file.path.split('/').last;
+    String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
 
     // 发送开始信号
     sendMessage(jsonEncode({
-      "fileId": file.hashCode,
-      "fileName": file.path.split('/').last,
-      "fileSize": file.lengthSync(),
+      "fileId": fileId,
+      "fileName": fileName,
+      "fileSize": fileSize,
       "flag": 'start',
-      "type": getMimeTypeFromExtension(file.path),
+      "type": fileType,
     }));
 
+    const minChunkSize = 16 * 1024; // 16KB
+    const maxChunkSize = 64 * 1024; // 256KB
+    int currentChunkSize = minChunkSize;
+
+    int offset = 0;
     int index = 0;
-    // // 读取流数据
-    await for (List<int> chunk in stream) {
-      while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
+    while (offset < fileSize) {
+      print("Sending chunk $index ($offset/$fileSize) (current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0})");
+      // 如果缓冲区数据大于 128KB，等待缓冲区数据清空
+      while ((conn.dataChannel?.bufferedAmount ?? 0) > 128 * 1024) {
         await Future.delayed(const Duration(milliseconds: 50));
       }
 
-      // 如果缓冲区满，则动态减小块大小
-      // while ((conn.dataChannel?.bufferedAmount ?? 0) > 16 * 1024) {
-      //   currentChunkSize =
-      //       (currentChunkSize / 2).clamp(minChunkSize, maxChunkSize).toInt();
-      //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
-      // }
+      final remaining = fileSize - offset;
+      final chunkSize =
+          remaining < currentChunkSize ? remaining : currentChunkSize;
 
-      // 如果缓冲区空闲，动态增大块大小
-      // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
-      //   currentChunkSize =
-      //       (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize).toInt();
-      // }
-
-      //       // 如果缓冲区空闲，动态增大块大小
-      // if ((conn.dataChannel?.bufferedAmount ?? 0) < 4 * 1024) {
-      //   currentChunkSize = (currentChunkSize * 2)
-      //       .clamp(minChunkSize, maxChunkSize)
-      //       .toInt();
-      // }
-
-      // // 动态调整块大小
-      // while ((conn.dataChannel?.bufferedAmount ?? 0) > 256 * 1024) {
-      //   currentChunkSize = (currentChunkSize / 2)
-      //       .clamp(minChunkSize, maxChunkSize)
-      //       .toInt();
-      //   await Future.delayed(const Duration(milliseconds: 50)); // 等待缓冲区变小
-      // }
-
+      final chunk = await file.openRead(offset, offset + chunkSize).first;
       Uint8List bytes = Uint8List.fromList(chunk);
       sendMessage(jsonEncode({
-        "fileId": file.hashCode,
-        "fileName": file.path.split('/').last,
+        "fileId": fileId,
+        "fileName": fileName,
         "chunk": bytes,
         "flag": 'chunk',
         "index": index,
-        "type": getMimeTypeFromExtension(file.path),
+        "type": fileType,
       }));
-      index++;
+      index += 1;
+
+      // 根据缓冲区数据量调整下一次发送的块大小
+      if ((conn.dataChannel?.bufferedAmount ?? 0) < 16 * 1024) {
+        currentChunkSize = (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize);
+      } else if ((conn.dataChannel?.bufferedAmount ?? 0) > 64 * 1024) {
+        currentChunkSize = (currentChunkSize ~/ 2).clamp(minChunkSize, maxChunkSize);
+      }
+
+      offset += chunkSize;
     }
 
     // 发送结束标志
     sendMessage(jsonEncode({
-      "fileId": file.hashCode,
-      "fileName": file.path.split('/').last,
-      "fileSize": file.lengthSync(),
+      "fileId": fileId,
+      "fileName": fileName,
+      "fileSize": fileSize,
       "flag": 'end',
-      "type": getMimeTypeFromExtension(file.path),
+      "type": fileType,
     }));
   }
 

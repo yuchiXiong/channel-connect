@@ -140,7 +140,7 @@ const StreamPage = () => {
             type: string;
             index: number;
           }
-          // console.log(data);
+          console.log(data);
           // 合并文件
           if (_data.flag === 'start') {
             console.log('init file', new Date().getTime());
@@ -183,7 +183,7 @@ const StreamPage = () => {
     })
   }
 
-  const currentSize = Object.values(fileRef.current).reduce((pre, cur) => pre + cur.length, 0);
+  const currentSize = Object.values(fileRef.current).map(i => new Uint8Array(i)).reduce((pre, cur) => pre + cur.byteLength, 0);
   const currentProgress = ((currentSize / fileInfoRef.current.fileSize || 0) * 100).toFixed(0);
 
   return (
