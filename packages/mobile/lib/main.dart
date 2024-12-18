@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:peerdart/peerdart.dart';
 
+const fileChunkSize = 64 * 1024;
+const batchFileCount = 50;
+
 void main() {
   runApp(const MaterialApp(
     home: HomePage(),
@@ -25,6 +28,9 @@ class _HomePageState extends State<HomePage> {
   String? peerId;
   late DataConnection conn;
   bool connected = false;
+  // final File file = File(media.path);
+  late File file;
+  late Uint8List fullFile;
 
   @override
   void dispose() {
@@ -42,7 +48,7 @@ class _HomePageState extends State<HomePage> {
             secure: false,
             path: '/myapp'));
     final connection = peer.connect('receiver');
-    conn = connection; 
+    conn = connection;
 
     conn.on("open").listen((event) {
       print("[DEBUG] dart peerjs: connected");
@@ -59,16 +65,45 @@ class _HomePageState extends State<HomePage> {
       });
 
       conn.on("data").listen((data) {
-        print("[DEBUG] dart peerjs: data");
-
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(data)));
+        print("[DEBUG] dart peerjs: $data");
       });
-      conn.on("binary").listen((data) {
-        print("[DEBUG] dart peerjs: binary");
+      conn.on("binary").listen((data) async {
+        String str = String.fromCharCodes(data);
+        Map<String, dynamic> json = jsonDecode(jsonDecode(str));
+        int fileId = json['fileId'];
+        String type = json['type'];
+        int index = json['index'];
+        print(index);
 
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Got binary!")));
+        // int fileSize = file.lengthSync();
+
+        if (type == 'request-file-chunk') {
+          // int start = fileChunkSize * index;
+          // int end = fileChunkSize * (index + 1);
+
+          // if (end > fileSize) {
+          //   end = fileSize;
+          // }
+
+          // final chunk = await file.openRead(start, end).first;
+          // final chunk = fullFile.sublist(start, end);
+          // Uint8List bytes = Uint8List.fromList(chunk);
+          String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
+
+          for (int i = index; i <= index + batchFileCount - 1; i++) {
+            sendChunk(
+                fullFile, i, fileId, fileType, file.path.split('/').last);
+          }
+
+          // sendMessage(jsonEncode({
+          //   "fileId": fileId,
+          //   "fileName": file.path.split('/').last,
+          //   "fileSize": file.lengthSync(),
+          //   "chunk": bytes,
+          //   "index": index,
+          //   "type": fileType,
+          // }));
+        }
       });
     });
   }
@@ -83,7 +118,11 @@ class _HomePageState extends State<HomePage> {
     conn.sendBinary(uint8List);
   }
 
-  void sendMessage(String content) {
+  void sendMessage(String content) async {
+    while ((conn.dataChannel?.bufferedAmount ?? 0) > 128 * 1024) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+
     Uint8List uint8List = Uint8List.fromList(utf8.encode(content));
 
     conn.sendBinary(uint8List);
@@ -138,20 +177,28 @@ class _HomePageState extends State<HomePage> {
     const maxChunkSize = 64 * 1024; // 256KB
     int currentChunkSize = minChunkSize;
 
+    final allChunk = await file.readAsBytes();
     int offset = 0;
     int index = 0;
     while (offset < fileSize) {
-      print("Sending chunk $index ($offset/$fileSize) (current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0})");
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      print(
+          "Sending chunk $index ($offset/$fileSize) (current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0})");
       // 如果缓冲区数据大于 128KB，等待缓冲区数据清空
       while ((conn.dataChannel?.bufferedAmount ?? 0) > 128 * 1024) {
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 10));
       }
 
-      final remaining = fileSize - offset;
-      final chunkSize =
-          remaining < currentChunkSize ? remaining : currentChunkSize;
+      // final remaining = fileSize - offset;
+      // final chunkSize =
+      // remaining < currentChunkSize ? remaining : currentChunkSize;
 
-      final chunk = await file.openRead(offset, offset + chunkSize).first;
+      // final chunk = await file.openRead(offset, offset + chunkSize).first;
+      final end = ((offset + currentChunkSize) > fileSize)
+          ? fileSize
+          : offset + currentChunkSize;
+      final chunk = allChunk.sublist(offset, end);
       Uint8List bytes = Uint8List.fromList(chunk);
       sendMessage(jsonEncode({
         "fileId": fileId,
@@ -161,16 +208,20 @@ class _HomePageState extends State<HomePage> {
         "index": index,
         "type": fileType,
       }));
+      print("current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0}");
       index += 1;
 
       // 根据缓冲区数据量调整下一次发送的块大小
       if ((conn.dataChannel?.bufferedAmount ?? 0) < 16 * 1024) {
-        currentChunkSize = (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize);
+        currentChunkSize =
+            (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize);
       } else if ((conn.dataChannel?.bufferedAmount ?? 0) > 64 * 1024) {
-        currentChunkSize = (currentChunkSize ~/ 2).clamp(minChunkSize, maxChunkSize);
+        currentChunkSize =
+            (currentChunkSize ~/ 2).clamp(minChunkSize, maxChunkSize);
       }
 
-      offset += chunkSize;
+      offset = end;
+      // offset += currentChunkSize;
     }
 
     // 发送结束标志
@@ -179,6 +230,86 @@ class _HomePageState extends State<HomePage> {
       "fileName": fileName,
       "fileSize": fileSize,
       "flag": 'end',
+      "type": fileType,
+    }));
+  }
+
+  /// 从相册选择文件并开始发送，问答模式
+  void sendFileFromAlbumByQA() async {
+    // 从相册选择文件
+    final picker = ImagePicker();
+    final XFile? media = await picker.pickMedia();
+
+    if (media == null) {
+      print("No image selected.");
+      return;
+    }
+
+    file = File(media.path);
+    fullFile = file.readAsBytesSync();
+
+    int fileId = file.hashCode;
+    int fileSize = file.lengthSync();
+    String fileName = file.path.split('/').last;
+    String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
+
+    // 发送开始信号
+    // sendMessage(jsonEncode({
+    //   "fileId": fileId,
+    //   "fileName": fileName,
+    //   "fileSize": fileSize,
+    //   "flag": 'start',
+    //   "type": fileType,
+    // }));
+
+    // 一次性发送5个文件块
+    for (int i = 1; i <= batchFileCount; i++) {
+      sendChunk(fullFile, i, fileId, fileType, fileName);
+    }
+
+    // fullFile = file.readAsBytesSync();
+    // int end = fileChunkSize < fileSize ? fileChunkSize : fileSize;
+    // final chunk = fullFile.sublist(0, end);
+    // int index = 0;
+
+    // Uint8List bytes = Uint8List.fromList(chunk);
+    // sendMessage(jsonEncode({
+    //   "fileId": fileId,
+    //   "fileName": fileName,
+    //   "fileSize": fileSize,
+    //   "chunk": bytes,
+    //   "index": index,
+    //   "type": fileType,
+    // }));
+
+    // 发送结束标志
+    // sendMessage(jsonEncode({
+    //   "fileId": fileId,
+    //   "fileName": fileName,
+    //   "fileSize": fileSize,
+    //   "flag": 'end',
+    //   "type": fileType,
+    // }));
+  }
+
+  void sendChunk(
+      Uint8List file, int index, int fileId, String fileType, String fileName) {
+    int fileSize = file.length;
+
+    int start = (index - 1) * fileChunkSize;
+    if (start >= fileSize) return;
+
+    int remainSize = fileSize - start;
+    int offset = fileChunkSize < remainSize ? fileChunkSize : remainSize;
+    final chunk = file.sublist(start, start + offset);
+
+    Uint8List bytes = Uint8List.fromList(chunk);
+    sendMessage(jsonEncode({
+      "fileId": fileId,
+      "fileName": fileName,
+      "fileSize": fileSize,
+      "chunk": bytes,
+      "index": index,
       "type": fileType,
     }));
   }
@@ -274,7 +405,7 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 const SizedBox(width: 16),
                 FloatingActionButton.extended(
-                  onPressed: sendFileFromAlbum,
+                  onPressed: sendFileFromAlbumByQA,
                   label: const Text('发送图片'),
                   icon: const Icon(Icons.album_sharp),
                 ),

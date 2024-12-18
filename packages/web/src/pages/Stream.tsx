@@ -4,6 +4,8 @@ import { useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react';
 import { Box, Progress } from '@radix-ui/themes';
 
+const batchFileCount = 50;
+
 const StreamPage = () => {
 
   let preTimeStamp = 0;
@@ -31,9 +33,11 @@ const StreamPage = () => {
 
   const startSearchRTCStatus = (conn: DataConnection) => {
     const timer = setInterval(() => {
+      console.log('interval')
       conn.peerConnection.getStats(null).then((stats) => {
         stats.forEach((report) => {
           if (report.type === 'data-channel' && report.dataChannelIdentifier === conn.dataChannel.id) {
+            console.log('getStats', report);
             const currentStats = {
               bytesSent: report.bytesSent || 0,
               bytesReceived: report.bytesReceived || 0,
@@ -41,10 +45,8 @@ const StreamPage = () => {
               messagesReceived: report.messagesReceived || 0,
               timestamp: report.timestamp || 0,
             }
-            console.log(`dataChannel: `, currentStats)
             const timeDiff = (currentStats.timestamp - preTimeStamp) / 1000; // 转为秒
-            // const bytesReceivedDiff = currentStats.bytesReceived - preSecondBytesReceived;
-            const currentBytesReceived = new Blob(Object.values(fileRef.current).map(i => new Uint8Array(i)), { type: fileInfoRef.current.type }).size;
+            const currentBytesReceived = fileInfoRef.current.current;
             const bytesReceivedDiff = currentBytesReceived - preSecondBytesReceived;
 
             const receiveSpeed = Number(((bytesReceivedDiff / timeDiff) / 1024 / 1024).toFixed(2)); // MB/s
@@ -129,51 +131,101 @@ const StreamPage = () => {
       console.log("My peer ID is: " + id);
 
       peer.on("connection", (conn) => {
-        console.log(conn.peer);
+        console.log("Connected to peer:", conn.peer);
         conn.on("data", (data) => {
+          // console.log('Received data:', data);
           const _data = data as {
             fileId: string;
             fileName: string;
             fileSize: number;
-            chunk?: Uint8Array;
-            flag: 'start' | 'end' | 'chunk';
+            chunk: Uint8Array;
             type: string;
             index: number;
           }
-          console.log(data);
-          // 合并文件
-          if (_data.flag === 'start') {
-            console.log('init file', new Date().getTime());
+
+          if (_data.index === 1) {
             fileRef.current = {};
+            fileRef.current[_data.index] = _data.chunk;
+
             fileInfoRef.current = {
               fileId: _data.fileId,
               fileName: _data.fileName,
               fileSize: _data.fileSize,
-              current: 0,
+              current: new Uint8Array(_data.chunk).byteLength,
               type: _data.type
             }
+            // conn.send(JSON.stringify({
+            //   type: 'request-file-chunk',
+            //   fileId: _data.fileId,
+            //   index: _data.index + 1
+            // }));
             stopSearchRTCStatus();
             startSearchRTCStatus(conn);
-          } else if (_data.flag === 'end') {
-            // 结束
-            console.log('end', new Date().getTime());
-            setTimeout(() => {
-              stopSearchRTCStatus();
-            }, 1001)
           } else {
-            // 添加数据
-            if (fileRef.current === undefined) return;
-            if (!_data.chunk) return;
+            const lastIndex = Math.ceil(fileInfoRef.current.fileSize / (64 * 1024));
 
             fileRef.current[_data.index] = _data.chunk;
-            fileInfoRef.current = {
-              fileId: _data.fileId,
-              fileName: _data.fileName,
-              fileSize: fileInfoRef.current.fileSize,
-              current: Object.values(fileRef.current).reduce((pre, cur) => pre + cur.byteLength, 0),
-              type: _data.type
+            fileInfoRef.current.current += new Uint8Array(_data.chunk).byteLength;
+            // 最后一个文件块
+            if (_data.index >= lastIndex) {
+              setTimeout(() => {
+                stopSearchRTCStatus();
+              }, 1001);
+              return;
             }
+            // 每「batchFileCount」个文件块请求（应答）一次
+            if (_data.index % batchFileCount === 0) {
+              conn.send(JSON.stringify({
+                type: 'request-file-chunk',
+                fileId: _data.fileId,
+                index: _data.index + 1
+              }));
+            }
+            // if (_data.index < lastIndex) {
+            //   conn.send(JSON.stringify({
+            //     type: 'request-file-chunk',
+            //     fileId: _data.fileId,
+            //     index: _data.index + 1
+            //   }));
+            // } else {
+            //   stopSearchRTCStatus();
+            // }
           }
+
+          // console.log(data);
+          // // 合并文件
+          // if (_data.flag === 'start') {
+          //   console.log('init file', new Date().getTime());
+          //   fileRef.current = {};
+          //   fileInfoRef.current = {
+          //     fileId: _data.fileId,
+          //     fileName: _data.fileName,
+          //     fileSize: _data.fileSize,
+          //     current: 0,
+          //     type: _data.type
+          //   }
+          //   stopSearchRTCStatus();
+          //   startSearchRTCStatus(conn);
+          // } else if (_data.flag === 'end') {
+          //   // 结束
+          //   console.log('end', new Date().getTime());
+          //   setTimeout(() => {
+          //     stopSearchRTCStatus();
+          //   }, 1001)
+          // } else {
+          //   // 添加数据
+          //   if (fileRef.current === undefined) return;
+          //   if (!_data.chunk) return;
+
+          //   fileRef.current[_data.index] = _data.chunk;
+          //   fileInfoRef.current = {
+          //     fileId: _data.fileId,
+          //     fileName: _data.fileName,
+          //     fileSize: fileInfoRef.current.fileSize,
+          //     current: Object.values(fileRef.current).reduce((pre, cur) => pre + cur.byteLength, 0),
+          //     type: _data.type
+          //   }
+          // }
         })
       })
 
