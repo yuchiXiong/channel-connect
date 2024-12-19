@@ -79,19 +79,15 @@ const Home = () => {
       emitter.on('data', (data) => {
         console.log('客户端接收到消息', data)
         const _data = data as IPeerMessage<string | IAlbumListItem[] | IPhotoInfo>;
-        if (_data.type === EPeerMessageType.Greeting) {
-          console.log('greeting', _data.data)
-        } else if (_data.type === EPeerMessageType.AlbumList) {
-
+        if (_data.type === EPeerMessageType.AlbumList) {
+          // 相册列表
           setAlbumList(_albumList => {
-
             if (_albumList.length > 0) return _albumList;
 
             return [..._data.data as IAlbumListItem[]]
           })
-        } else if (_data.type === EPeerMessageType.RequestAlbumInfo) {
-
-
+        } else if (_data.type === EPeerMessageType.AlbumMediaList) {
+          // 相册下的媒体文件列表
           setAlbumList(_albumList => {
             const res = _data.data as IPhotoInfo;
             console.log(_albumList, res.id)
@@ -108,8 +104,8 @@ const Home = () => {
 
             return [..._albumList]
           })
-        } else if (_data.type === EPeerMessageType.RequestPhotoOrigin) {
-
+        } else if (_data.type === EPeerMessageType.MediaOrigin) {
+          // 媒体文件的原文件
           setAlbumList((_albumList) => {
 
             const res = _data.data as IPhotoInfo;
@@ -144,7 +140,6 @@ const Home = () => {
               });
 
             }
-
 
             return [...albumList];
           });
@@ -185,7 +180,7 @@ const Home = () => {
           loadingPhotoThumbIds.current.add(currentPhoto.id);
 
           connRef.current?.send({
-            type: EPeerMessageType.RequestAlbumInfo,
+            type: EPeerMessageType.AlbumMediaList,
             data: id
           });
 

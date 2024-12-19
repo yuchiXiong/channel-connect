@@ -1,11 +1,13 @@
-import Peer, { DataConnection } from "peerjs";
+import Peer from "peerjs";
 import mitt from "mitt";
 
 export enum EPeerMessageType {
-  Greeting = "Greeting",
-  AlbumList = "AlbumList",
-  RequestAlbumInfo = "RequestAlbumInfo",
-  RequestPhotoOrigin = "RequestPhotoOrigin",
+  // 请求相册列表
+  AlbumList = "RequestAlbumList",
+  // 请求相册下的媒体文件列表
+  AlbumMediaList = "RequestAlbumMediaList",
+  // 请求媒体文件的源文件
+  MediaOrigin = "RequestMediaOrigin",
 }
 
 export interface IPeerMessage<T> {
@@ -31,67 +33,6 @@ export const getPeerInstance = (standalone = true) => {
   return peerInstance;
 };
 
-let joinerPeer: Peer | null = null;
-let joinerConn: DataConnection | null = null;
-export const getJoinerPeerInstance = (
-  receiverId: string
-): Promise<DataConnection> => {
-  if (joinerConn) return Promise.resolve(joinerConn);
-
-  joinerPeer = getPeerInstance();
-
-  return new Promise<DataConnection>((resolve, reject) => {
-    if (!joinerPeer) {
-      reject("hostPeer is null");
-      return;
-    }
-
-    joinerPeer.on("error", (err) => {
-      reject(err);
-    });
-    joinerPeer.on("open", (id) => {
-      console.log("My peer ID is: " + id);
-
-      joinerConn = (joinerPeer as Peer).connect(receiverId);
-
-      console.log(joinerConn);
-
-      joinerConn.on("open", () => {
-        console.log("joinerConn open");
-        emitter.emit("open");
-        resolve(joinerConn as DataConnection);
-      });
-
-      joinerConn.on("close", () => {
-        console.log("joinerConn close");
-
-        emitter.emit("close");
-      });
-
-      joinerConn.on("iceStateChanged", (state) => {
-        console.log("iceStateChanged close");
-        emitter.emit("iceStateChanged", state);
-      });
-
-      joinerConn.on("error", (err) => {
-        console.log("iceStateChanged error");
-
-        emitter.emit("error", err);
-      });
-
-      joinerConn.on("data", (data) => {
-        console.log("iceStateChanged data");
-
-        emitter.emit("data", data);
-      });
-    });
-
-    joinerPeer.on("connection", (conn) => {
-      console.log("joinerPeer connection");
-      emitter.emit("connection", conn);
-    });
-  });
-};
 
 let hostPeer: Peer | null = null;
 export const getHostPeerInstance = (): Promise<Peer> => {

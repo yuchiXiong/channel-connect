@@ -91,8 +91,7 @@ class _HomePageState extends State<HomePage> {
           String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
 
           for (int i = index; i <= index + batchFileCount - 1; i++) {
-            sendChunk(
-                fullFile, i, fileId, fileType, file.path.split('/').last);
+            sendChunk(fullFile, i, fileId, fileType, file.path.split('/').last);
           }
 
           // sendMessage(jsonEncode({
@@ -147,95 +146,8 @@ class _HomePageState extends State<HomePage> {
     return mimeTypes['.${extension.toLowerCase()}'];
   }
 
-  void sendFileFromAlbum() async {
-    // 从相册选择文件
-    final picker = ImagePicker();
-    final XFile? media = await picker.pickMedia();
-
-    if (media == null) {
-      print("No image selected.");
-      return;
-    }
-
-    final File file = File(media.path);
-
-    int fileId = file.hashCode;
-    int fileSize = file.lengthSync();
-    String fileName = file.path.split('/').last;
-    String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
-
-    // 发送开始信号
-    sendMessage(jsonEncode({
-      "fileId": fileId,
-      "fileName": fileName,
-      "fileSize": fileSize,
-      "flag": 'start',
-      "type": fileType,
-    }));
-
-    const minChunkSize = 16 * 1024; // 16KB
-    const maxChunkSize = 64 * 1024; // 256KB
-    int currentChunkSize = minChunkSize;
-
-    final allChunk = await file.readAsBytes();
-    int offset = 0;
-    int index = 0;
-    while (offset < fileSize) {
-      await Future.delayed(const Duration(milliseconds: 10));
-
-      print(
-          "Sending chunk $index ($offset/$fileSize) (current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0})");
-      // 如果缓冲区数据大于 128KB，等待缓冲区数据清空
-      while ((conn.dataChannel?.bufferedAmount ?? 0) > 128 * 1024) {
-        await Future.delayed(const Duration(milliseconds: 10));
-      }
-
-      // final remaining = fileSize - offset;
-      // final chunkSize =
-      // remaining < currentChunkSize ? remaining : currentChunkSize;
-
-      // final chunk = await file.openRead(offset, offset + chunkSize).first;
-      final end = ((offset + currentChunkSize) > fileSize)
-          ? fileSize
-          : offset + currentChunkSize;
-      final chunk = allChunk.sublist(offset, end);
-      Uint8List bytes = Uint8List.fromList(chunk);
-      sendMessage(jsonEncode({
-        "fileId": fileId,
-        "fileName": fileName,
-        "chunk": bytes,
-        "flag": 'chunk',
-        "index": index,
-        "type": fileType,
-      }));
-      print("current bufferedAmount: ${conn.dataChannel?.bufferedAmount ?? 0}");
-      index += 1;
-
-      // 根据缓冲区数据量调整下一次发送的块大小
-      if ((conn.dataChannel?.bufferedAmount ?? 0) < 16 * 1024) {
-        currentChunkSize =
-            (currentChunkSize * 2).clamp(minChunkSize, maxChunkSize);
-      } else if ((conn.dataChannel?.bufferedAmount ?? 0) > 64 * 1024) {
-        currentChunkSize =
-            (currentChunkSize ~/ 2).clamp(minChunkSize, maxChunkSize);
-      }
-
-      offset = end;
-      // offset += currentChunkSize;
-    }
-
-    // 发送结束标志
-    sendMessage(jsonEncode({
-      "fileId": fileId,
-      "fileName": fileName,
-      "fileSize": fileSize,
-      "flag": 'end',
-      "type": fileType,
-    }));
-  }
-
   /// 从相册选择文件并开始发送，问答模式
-  void sendFileFromAlbumByQA() async {
+  void sendFileFromAlbum() async {
     // 从相册选择文件
     final picker = ImagePicker();
     final XFile? media = await picker.pickMedia();
@@ -361,57 +273,33 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text('WebRTC')),
-        body: Text('Hello World'),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const SizedBox(width: 16),
-                FloatingActionButton.extended(
-                  onPressed: connect,
-                  label: const Text('创建连接'),
-                  icon: const Icon(Icons.connected_tv),
+      appBar: AppBar(title: const Text('文件传输助手')),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  connect();
+                },
+                label: Text(
+                  '扫码连接',
+                  style: TextStyle(fontSize: 18),
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const SizedBox(width: 16),
-                FloatingActionButton.extended(
-                  onPressed: closeConnection,
-                  label: const Text('断开连接'),
-                  icon: const Icon(Icons.connected_tv),
+                icon: const Icon(
+                  Icons.qr_code,
+                  size: 24,
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const SizedBox(width: 16),
-                FloatingActionButton.extended(
-                  onPressed: sendBinary,
-                  label: const Text('发送数据'),
-                  icon: const Icon(Icons.message),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const SizedBox(width: 16),
-                FloatingActionButton.extended(
-                  onPressed: sendFileFromAlbumByQA,
-                  label: const Text('发送图片'),
-                  icon: const Icon(Icons.album_sharp),
-                ),
-              ],
-            )
-          ],
-        ));
+                style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    side: BorderSide(color: Colors.black, width: 1)),
+              )
+            ],
+          )
+        ],
+      ),
+    );
   }
 }
