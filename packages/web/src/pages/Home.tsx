@@ -159,7 +159,6 @@ const Home = () => {
       emitter.off('open')
       emitter.off('data')
       emitter.off('connection')
-
     }
   }, [albumList, downloadStatus, lastDownloadPath, downloadSuccessPhotoIds, currentSelectedAlbumIds]);
 
