@@ -2,10 +2,65 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:FileTransfer/barcode_scanner_listview.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:peerdart/peerdart.dart';
+import 'package:photo_manager/photo_manager.dart';
+
+class AlbumMediaListEntry {
+  final String id;
+  final String title;
+  final int width;
+  final int height;
+  final String thumb;
+  final int createDateSecond;
+
+  AlbumMediaListEntry(
+      {required this.id,
+      required this.title,
+      required this.width,
+      required this.height,
+      required this.thumb,
+      required this.createDateSecond});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'width': width,
+      'height': height,
+      'thumb': thumb,
+      'createDateSecond': createDateSecond,
+    };
+  }
+}
+
+class AlbumListEntry {
+  final String id;
+  final String name;
+  final int count;
+  final List<AlbumMediaListEntry> children;
+
+  AlbumListEntry(
+      {required this.id,
+      required this.name,
+      required this.count,
+      required this.children,
+      });
+
+ // tojson
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'count': count,
+      'children': children.map((e) => e.toJson()).toList(),
+    };
+  }
+}
 
 const fileChunkSize = 64 * 1024;
 const batchFileCount = 50;
@@ -38,20 +93,18 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void connect() {
+  void connect(String peerId) {
     peer = Peer(
-        id: 'sender',
         options: PeerOptions(
             debug: LogLevel.All,
             host: '116.62.176.240',
             port: 80,
             secure: false,
             path: '/myapp'));
-    final connection = peer.connect('receiver');
+    final connection = peer.connect(peerId);
     conn = connection;
 
     conn.on("open").listen((event) {
-      print("[DEBUG] dart peerjs: connected");
       setState(() {
         connected = true;
       });
@@ -69,42 +122,84 @@ class _HomePageState extends State<HomePage> {
       });
       conn.on("binary").listen((data) async {
         String str = String.fromCharCodes(data);
-        Map<String, dynamic> json = jsonDecode(jsonDecode(str));
-        int fileId = json['fileId'];
+        Map<String, dynamic> json = jsonDecode(str);
         String type = json['type'];
-        int index = json['index'];
-        print(index);
-
-        // int fileSize = file.lengthSync();
 
         if (type == 'request-file-chunk') {
-          // int start = fileChunkSize * index;
-          // int end = fileChunkSize * (index + 1);
+          int fileId = json['fileId'];
+          int index = json['index'];
 
-          // if (end > fileSize) {
-          //   end = fileSize;
-          // }
-
-          // final chunk = await file.openRead(start, end).first;
-          // final chunk = fullFile.sublist(start, end);
-          // Uint8List bytes = Uint8List.fromList(chunk);
           String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
 
           for (int i = index; i <= index + batchFileCount - 1; i++) {
             sendChunk(fullFile, i, fileId, fileType, file.path.split('/').last);
           }
+        } else if (type == 'AlbumList') {
+          List<AlbumListEntry> albumList = await getAlbumList();
 
-          // sendMessage(jsonEncode({
-          //   "fileId": fileId,
-          //   "fileName": file.path.split('/').last,
-          //   "fileSize": file.lengthSync(),
-          //   "chunk": bytes,
-          //   "index": index,
-          //   "type": fileType,
-          // }));
+          sendMessage(jsonEncode({
+            "type": "AlbumList",
+            "data": albumList,
+          }));
         }
       });
     });
+  }
+
+  void sendAlbumList() async {
+    List<AlbumListEntry> albumList = await getAlbumList();
+    sendMessage(jsonEncode({
+      "type": "AlbumList",
+      "data": albumList,
+    }));
+  }
+
+  Future<List<AlbumListEntry>> getAlbumList() async {
+    final PermissionState ps = await PhotoManager
+        .requestPermissionExtend(); // the method can use optional param `permission`.
+    if (ps.isAuth || ps.hasAccess) {
+      // Granted
+      // You can to get assets here.
+
+      // Access will continue, but the amount visible depends on the user's selection.
+      final List<AssetPathEntity> list =
+          await PhotoManager.getAssetPathList(hasAll: false);
+
+      final resultListTask = list.map((path) async {
+        // 获取每个相册的所有照片
+        final count = await path.assetCountAsync;
+        final List<AssetEntity> entities = await path.getAssetListPaged(
+          page: 0,
+          size: count,
+        );
+
+        final resultList = entities.map((entity) {
+          return AlbumMediaListEntry(
+            id: entity.id,
+            title: entity.title!,
+            width: entity.width,
+            height: entity.height,
+            createDateSecond: entity.createDateSecond!,
+            thumb: '',
+          );
+        });
+
+        return AlbumListEntry(
+          id: path.id,
+          name: path.name,
+          count: count,
+          children: resultList.toList(),
+        );
+      });
+
+      final resultList = await Future.wait(resultListTask);
+
+      return resultList.toList();
+    } else {
+      // Limited(iOS) or Rejected, use `==` for more precise judgements.
+      // You can call `PhotoManager.openSetting()` to open settings for further steps.
+      return [];
+    }
   }
 
   void sendBinary() {
@@ -127,7 +222,6 @@ class _HomePageState extends State<HomePage> {
     conn.sendBinary(uint8List);
   }
 
-  ///
   /// 根据文件名推断文件类型
   String? getMimeTypeFromExtension(String filePath) {
     final Map<String, String> mimeTypes = {
@@ -228,6 +322,9 @@ class _HomePageState extends State<HomePage> {
 
   void closeConnection() {
     peer.dispose();
+    setState(() {
+      connected = false;
+    });
   }
 
   @override
@@ -270,6 +367,22 @@ class _HomePageState extends State<HomePage> {
     // });
   }
 
+  void scanQRCode() async {
+    print("[DEBUG] scanQRCode");
+    final result = await Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => const BarcodeScannerListView(),
+      ),
+    );
+
+    if (!context.mounted) {
+    } else {
+      String peerId = result as String;
+      connect(peerId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,11 +393,18 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Text('连接状态: ${connected ? '已连接' : '未连接'}'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               TextButton.icon(
                 onPressed: () {
-                  connect();
+                  scanQRCode();
                 },
-                label: Text(
+                label: const Text(
                   '扫码连接',
                   style: TextStyle(fontSize: 18),
                 ),
@@ -293,11 +413,34 @@ class _HomePageState extends State<HomePage> {
                   size: 24,
                 ),
                 style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    side: BorderSide(color: Colors.black, width: 1)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    side: const BorderSide(
+                        color: Color.fromARGB(204, 0, 0, 0), width: 1)),
               )
             ],
           )
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              connect('bc3db570-5e03-4a88-8324-fea08cd27309');
+            },
+            child: const Icon(Icons.connected_tv),
+          ),
+          SizedBox(height: 18),
+          FloatingActionButton(
+            onPressed: closeConnection,
+            child: const Icon(Icons.close),
+          ),
+          SizedBox(height: 18),
+          FloatingActionButton(
+            onPressed: sendAlbumList,
+            child: const Icon(Icons.album),
+          ),
         ],
       ),
     );

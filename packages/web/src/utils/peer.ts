@@ -1,13 +1,13 @@
-import Peer from "peerjs";
+import Peer, { PeerOptions } from "peerjs";
 import mitt from "mitt";
 
 export enum EPeerMessageType {
   // 请求相册列表
-  AlbumList = "RequestAlbumList",
+  AlbumList = "AlbumList",
   // 请求相册下的媒体文件列表
-  AlbumMediaList = "RequestAlbumMediaList",
+  AlbumMediaList = "AlbumMediaList",
   // 请求媒体文件的源文件
-  MediaOrigin = "RequestMediaOrigin",
+  MediaOrigin = "MediaOrigin",
 }
 
 export interface IPeerMessage<T> {
@@ -19,7 +19,7 @@ export const emitter = mitt();
 let peerInstance: Peer | null = null;
 
 export const getPeerInstance = (standalone = true) => {
-  const options = {
+  const options: PeerOptions = {
     host: "116.62.176.240",
     port: 80,
     path: "/myapp",
@@ -69,7 +69,7 @@ export const getHostPeerInstance = (): Promise<Peer> => {
       });
     });
     hostPeer.on("error", (err) => {
-      console.log("hostPeer error");
+      console.log("hostPeer error", err);
 
       reject(err);
     });

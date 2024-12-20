@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { DataConnection } from 'peerjs'
 import { emitter, EPeerMessageType, getHostPeerInstance, IPeerMessage } from '../utils/peer'
 import { IAlbumListItem, IPhotoInfo } from '../utils/jsbridge.flutter';
-import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Spinner, Tooltip } from '@radix-ui/themes';
-import { InfoCircledIcon, DownloadIcon, Cross1Icon, MinusIcon, SquareIcon, CopyIcon, } from '@radix-ui/react-icons';
-import { PhotoProvider, PhotoView } from 'react-photo-view';
+import { Callout, CheckboxGroup, Link, Progress, ScrollArea, Tooltip } from '@radix-ui/themes';
+import { InfoCircledIcon, Cross1Icon, MinusIcon, SquareIcon, CopyIcon, } from '@radix-ui/react-icons';
 import { downloadByBase64, openDirectory, openPathDirectory, windowClose, windowMax, windowMin } from '../utils/jsbridge.electron';
-import OriginPhotoPreview from '../components/OriginPhotoPreview';
 import dayjs from 'dayjs';
 import * as radash from 'radash';
 import React from 'react';
@@ -47,6 +45,11 @@ const Home = () => {
         console.log("connected to: " + connRef.current?.peer);
         setConnState('open')
         setOpen(false);
+
+        // 请求相册列表
+        connRef.current?.send({
+          type: EPeerMessageType.AlbumList,
+        })
       });
 
       emitter.on("close", () => {
@@ -196,20 +199,6 @@ const Home = () => {
       observer.disconnect();
     }
   }, [albumList.length, currentAlbumId]);
-
-  const downloadFile = async (index: number) => {
-    const currentAlbum = albumList.find((album) => {
-      return album.id === currentAlbumId;
-    }) as IAlbumListItem;
-
-    const photo = currentAlbum.children[index];
-    if (!photo) return;
-    if (!photo.origin) return;
-    const savePath = await openDirectory();
-    downloadByBase64(photo.origin, photo.title, savePath).then(() => {
-      console.log('download success');
-    });
-  }
 
   /** 全部导出 */
   const batchDownloadPhotos = async (): Promise<void> => {
@@ -363,15 +352,13 @@ const Home = () => {
                   onClick={() => setCurrentAlbumId(album.id)}
                   className='flex flex-row pl-2 items-center flex-1 !w-full rounded-lg cursor-pointer transition hover:bg-[#ECECEE] '
                 >
-                  <div key={album.id} className='flex flex-row items-center w-full p-2 '>
-                    <img src={`data:image/jpeg;base64, ${album.cover}`} className='object-cover w-16 h-16 rounded' />
-                    <p className='flex items-center flex-1 w-full pl-3 text-base tracking-wider text-black truncate'>
+                  <div key={album.id} className='flex flex-row items-center w-full p-2'>
+                    <p className='flex items-center flex-1 w-full text-base tracking-wider text-black truncate'>
                       {album.name}<span className='inline-block h-4 px-2 py-0 ml-1 text-sm leading-4 text-black bg-gray-200 rounded-full'>{album.count}</span>
                     </p>
                   </div>
                 </CheckboxGroup.Item>
               ))}
-
             </section>
           </ScrollArea>
         </CheckboxGroup.Root>
@@ -386,40 +373,22 @@ const Home = () => {
         >
           <ScrollArea type="always" scrollbars="vertical" className='flex-1 h-full'>
             <section className='flex flex-row flex-wrap content-start flex-1 w-full h-full px-10'>
-              <PhotoProvider
-                toolbarRender={({ index }) => {
-                  return (
-                    <>
-                      <DownloadIcon className='ml-4 opacity-75 cursor-pointer size-4 hover:opacity-100' onClick={() => downloadFile(index)} />
-                      <InfoCircledIcon className='ml-4 opacity-75 cursor-pointer size-4 hover:opacity-100' onClick={() => { }} />
-                    </>
-                  );
-                }}
-              >
-                {Object.keys(albumGroupByDay).map((key) => (
-                  <React.Fragment key={key}>
-                    <p className='sticky top-0 w-full p-2 pt-8 text-xl font-bold bg-white'>{key}</p>
-                    {(albumGroupByDay[key] || []).map((item) => (
-                      <PhotoView
-                        key={item.id}
-                        width={document.body.clientWidth}
-                        height={document.body.clientHeight}
-                        render={({ scale, attrs }) => <OriginPhotoPreview attrs={attrs} scale={scale} item={{ ...item }} conn={connRef.current} />}
-                      >
-                        {item.thumb ? (
-                          <div className='w-1/6 p-1 cursor-pointer aspect-square'>
-                            <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='object-cover w-full h-full rounded-md shadow-md' />
-                          </div>
-                        ) : (
-                          <div className='flex items-center justify-center w-1/6 p-1 cursor-pointer aspect-square'>
-                            <div id={`image_${item.id}`} className='flex items-center justify-center w-full h-full text-center text-white rounded-md shadow-md bg-black/65'>{loadingPhotoThumbIds.current.has(item.id) && <Spinner />}</div>
-                          </div>
-                        )}
-                      </PhotoView>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </PhotoProvider>
+              {Object.keys(albumGroupByDay).map((key) => (
+                <React.Fragment key={key}>
+                  <p className='sticky top-0 w-full p-2 pt-8 text-xl font-bold bg-white'>{key}</p>
+                  {(albumGroupByDay[key] || []).map((item) => (
+                    item.thumb ? (
+                      <div className='w-1/6 p-1 cursor-pointer aspect-square'>
+                        <img id={`image_${item.id}`} src={`data:image/jpeg;base64, ${item.thumb}`} alt="" className='object-cover w-full h-full rounded-md shadow-md' />
+                      </div>
+                    ) : (
+                      <div className='flex items-center justify-center w-1/6 p-1 cursor-pointer aspect-square'>
+                        <div id={`image_${item.id}`} className='flex items-center justify-center w-full h-full text-center text-white rounded-md shadow-md bg-black/25' />
+                      </div>
+                    )
+                  ))}
+                </React.Fragment>
+              ))}
             </section>
           </ScrollArea>
         </section>
