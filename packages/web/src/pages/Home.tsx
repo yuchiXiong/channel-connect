@@ -107,8 +107,8 @@ const Home = () => {
 
             return [..._albumList]
           })
-        } else if (_data.type === EPeerMessageType.MediaOrigin) {
-          // 媒体文件的原文件
+        } else if (_data.type === EPeerMessageType.MediaThumb) {
+          // 媒体文件的封面数据
           setAlbumList((_albumList) => {
 
             const res = _data.data as IPhotoInfo;
@@ -120,29 +120,29 @@ const Home = () => {
             }) as IAlbumListItem;
             const currentImg = currentAlbum.children.find(i => i.id === res.id) as IPhotoInfo;
 
-            if (currentImg.origin === res.origin) return _albumList;
+            if (currentImg.thumb === res.thumb) return _albumList;
 
-            currentImg.origin = res.origin;
+            currentImg.thumb = res.thumb;
 
             /**
             * ! 如果在下载过程中拉取的原图，则视为下载行为
             */
-            if (downloadStatus === 'downloading') {
-              downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name, true);
+            // if (downloadStatus === 'downloading') {
+            //   downloadByBase64(currentImg.origin, currentImg.title, lastDownloadPath + '/' + currentAlbum.name, true);
 
-              setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
-                const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
-                // 下载完成
-                const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (_albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
+            //   setDownloadSuccessPhotoIds(_downloadSuccessPhotoIds => {
+            //     const newVal = [...new Set(_downloadSuccessPhotoIds.concat(currentImg.id))];
+            //     // 下载完成
+            //     const allDownloadPhoto = currentSelectedAlbumIds.reduce((acc, id) => (_albumList.find((album) => album.id === id)?.children || []).length + acc, 0)
 
-                if (newVal.length === allDownloadPhoto) {
-                  console.log('下载完成')
-                  setDownloadStatus('success')
-                }
-                return newVal;
-              });
+            //     if (newVal.length === allDownloadPhoto) {
+            //       console.log('下载完成')
+            //       setDownloadStatus('success')
+            //     }
+            //     return newVal;
+            //   });
 
-            }
+            // }
 
             return [...albumList];
           });
@@ -175,15 +175,14 @@ const Home = () => {
 
           const currentPhoto = currentAlbum?.children.find(i => i.id === id) as IPhotoInfo;
 
-
           if (loadingPhotoThumbIds.current.has(currentPhoto.id)) return;
-          if (currentPhoto.thumb && currentPhoto.origin) return;
+          // if (currentPhoto.thumb && currentPhoto.origin) return;
 
           // 记录当前请求的图片id
           loadingPhotoThumbIds.current.add(currentPhoto.id);
 
           connRef.current?.send({
-            type: EPeerMessageType.AlbumMediaList,
+            type: EPeerMessageType.MediaThumb,
             data: id
           });
 

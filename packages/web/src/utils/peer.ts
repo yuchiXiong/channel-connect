@@ -8,6 +8,8 @@ export enum EPeerMessageType {
   AlbumMediaList = "AlbumMediaList",
   // 请求媒体文件的源文件
   MediaOrigin = "MediaOrigin",
+  // 请求媒体文件的封面数据
+  MediaThumb = "MediaThumb",
 }
 
 export interface IPeerMessage<T> {

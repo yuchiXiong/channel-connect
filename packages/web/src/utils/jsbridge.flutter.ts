@@ -1,15 +1,17 @@
 import dsBridge from "dsbridge";
 
+/**
+ * 相册数据结构
+ */
 export interface IAlbumListItem {
   id: string;
   name: string;
-  cover: string;
   count: number;
   children: {
     id: string;
-    thumb: string;
-    origin: string;
     title: string;
+    thumb: string;
+    // origin: string;
     width: number;
     height: number;
     createDateSecond: number;

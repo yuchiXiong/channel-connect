@@ -44,14 +44,14 @@ class AlbumListEntry {
   final int count;
   final List<AlbumMediaListEntry> children;
 
-  AlbumListEntry(
-      {required this.id,
-      required this.name,
-      required this.count,
-      required this.children,
-      });
+  AlbumListEntry({
+    required this.id,
+    required this.name,
+    required this.count,
+    required this.children,
+  });
 
- // tojson
+  // tojson
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
         String type = json['type'];
 
         if (type == 'request-file-chunk') {
-          int fileId = json['fileId'];
+          int fileId = json['id'];
           int index = json['index'];
 
           String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
@@ -141,6 +141,9 @@ class _HomePageState extends State<HomePage> {
             "type": "AlbumList",
             "data": albumList,
           }));
+        } else if (type == 'MediaThumb') {
+          String id = json['id'];
+          // sendMediaThumb(id);
         }
       });
     });
@@ -153,6 +156,25 @@ class _HomePageState extends State<HomePage> {
       "data": albumList,
     }));
   }
+
+  // void sendMediaThumb(String id) async {
+  //   final entity = await AssetEntity.fromId(id);
+  //   if (entity == null) return;
+
+  //   final thumb = await entity.thumbnailData;
+
+  //   if (thumb == null) return;
+
+  //   int fileId = thumb.hashCode;
+  //   // int fileSize = thumb.lengthInBytes;
+  //   String fileName = id;
+  //   String fileType =
+  //       getMimeTypeFromExtension(entity.relativePath!) ?? 'unknown';
+
+  //   for (int i = 0; i <= batchFileCount - 1; i++) {
+  //     sendChunk(thumb, i, fileId, fileType, fileName);
+  //   }
+  // }
 
   Future<List<AlbumListEntry>> getAlbumList() async {
     final PermissionState ps = await PhotoManager
