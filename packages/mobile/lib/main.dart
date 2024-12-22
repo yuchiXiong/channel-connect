@@ -62,7 +62,8 @@ class AlbumListEntry {
   }
 }
 
-const fileChunkSize = 64 * 1024;
+const fileChunkSize = 16300;
+// const fileChunkSize = 64 * 1024;
 const batchFileCount = 50;
 
 void main() {
@@ -101,7 +102,10 @@ class _HomePageState extends State<HomePage> {
             port: 80,
             secure: false,
             path: '/myapp'));
-    final connection = peer.connect(peerId);
+    final connection = peer.connect(
+      peerId,
+      // options: PeerConnectOption(serialization: SerializationType.Binary)
+    );
     conn = connection;
 
     conn.on("open").listen((event) {
@@ -126,14 +130,12 @@ class _HomePageState extends State<HomePage> {
         String type = json['type'];
 
         if (type == 'request-file-chunk') {
-          int fileId = json['id'];
+          int fileId = json['fileId'];
           int index = json['index'];
 
-          String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
-
-          for (int i = index; i <= index + batchFileCount - 1; i++) {
-            sendChunk(fullFile, i, fileId, fileType, file.path.split('/').last);
-          }
+          // String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
+          print("接收到请求 $index");
+          handleChunk(fullFile, index, fileId);
         } else if (type == 'AlbumList') {
           List<AlbumListEntry> albumList = await getAlbumList();
 
@@ -156,25 +158,6 @@ class _HomePageState extends State<HomePage> {
       "data": albumList,
     }));
   }
-
-  // void sendMediaThumb(String id) async {
-  //   final entity = await AssetEntity.fromId(id);
-  //   if (entity == null) return;
-
-  //   final thumb = await entity.thumbnailData;
-
-  //   if (thumb == null) return;
-
-  //   int fileId = thumb.hashCode;
-  //   // int fileSize = thumb.lengthInBytes;
-  //   String fileName = id;
-  //   String fileType =
-  //       getMimeTypeFromExtension(entity.relativePath!) ?? 'unknown';
-
-  //   for (int i = 0; i <= batchFileCount - 1; i++) {
-  //     sendChunk(thumb, i, fileId, fileType, fileName);
-  //   }
-  // }
 
   Future<List<AlbumListEntry>> getAlbumList() async {
     final PermissionState ps = await PhotoManager
@@ -277,45 +260,47 @@ class _HomePageState extends State<HomePage> {
     fullFile = file.readAsBytesSync();
 
     int fileId = file.hashCode;
-    int fileSize = file.lengthSync();
-    String fileName = file.path.split('/').last;
-    String fileType = getMimeTypeFromExtension(file.path) ?? 'unknown';
 
-    // 发送开始信号
-    // sendMessage(jsonEncode({
-    //   "fileId": fileId,
-    //   "fileName": fileName,
-    //   "fileSize": fileSize,
-    //   "flag": 'start',
-    //   "type": fileType,
-    // }));
+    handleChunk(fullFile, 1, fileId);
+  }
 
-    // 一次性发送5个文件块
-    for (int i = 1; i <= batchFileCount; i++) {
-      sendChunk(fullFile, i, fileId, fileType, fileName);
+  void handleChunk(Uint8List file, int index, int fileId) {
+    int fileSize = file.length;
+    int total = (file.length / fileChunkSize).ceil();
+
+    for (int i = index; i < index + batchFileCount; i++) {
+      int start = (i - 1) * fileChunkSize;
+      if (start >= fileSize) return;
+
+      int remainSize = fileSize - start;
+      if (remainSize <= 0) return;
+
+      int offset = fileChunkSize < remainSize ? fileChunkSize : remainSize;
+
+      final chunk = file.sublist(start, start + offset);
+      print(
+          "[$i]文件片：${chunk.length} 数据片: $start - ${start + offset} 总长度: $fileSize");
+      Uint8List bytes = Uint8List.fromList(chunk);
+
+      Object dataChunk = {
+        "__peerData": fileId,
+        "n": i,
+        "data": bytes,
+        "total": total,
+        "type": 'video/mp4',
+        "fileName": 'text.mp4',
+        "fileSize": fileSize,
+      };
+
+      sendMessage(jsonEncode(dataChunk));
     }
 
-    // fullFile = file.readAsBytesSync();
-    // int end = fileChunkSize < fileSize ? fileChunkSize : fileSize;
-    // final chunk = fullFile.sublist(0, end);
-    // int index = 0;
-
-    // Uint8List bytes = Uint8List.fromList(chunk);
     // sendMessage(jsonEncode({
     //   "fileId": fileId,
     //   "fileName": fileName,
     //   "fileSize": fileSize,
     //   "chunk": bytes,
     //   "index": index,
-    //   "type": fileType,
-    // }));
-
-    // 发送结束标志
-    // sendMessage(jsonEncode({
-    //   "fileId": fileId,
-    //   "fileName": fileName,
-    //   "fileSize": fileSize,
-    //   "flag": 'end',
     //   "type": fileType,
     // }));
   }
@@ -332,14 +317,24 @@ class _HomePageState extends State<HomePage> {
     final chunk = file.sublist(start, start + offset);
 
     Uint8List bytes = Uint8List.fromList(chunk);
-    sendMessage(jsonEncode({
-      "fileId": fileId,
-      "fileName": fileName,
-      "fileSize": fileSize,
-      "chunk": bytes,
-      "index": index,
-      "type": fileType,
-    }));
+    // 前面3位为文件分包的序号
+    // Uint8List indexBytes = Uint8List(3);
+    // indexBytes[0] = (index >> 16) & 0xff;
+    // indexBytes[1] = (index >> 8) & 0xff;
+    // indexBytes[2] = index & 0xff;
+    // print("前三位转成字符串 ${indexBytes.toString()}");
+
+    // bytes = Uint8List.fromList(indexBytes + bytes);
+    print("发送的数据长度 ${bytes.length}");
+    conn.sendBinary(bytes);
+    // sendMessage(jsonEncode({
+    //   "fileId": fileId,
+    //   "fileName": fileName,
+    //   "fileSize": fileSize,
+    //   "chunk": bytes,
+    //   "index": index,
+    //   "type": fileType,
+    // }));
   }
 
   void closeConnection() {
@@ -449,7 +444,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           FloatingActionButton(
             onPressed: () {
-              connect('bc3db570-5e03-4a88-8324-fea08cd27309');
+              connect('receiver');
             },
             child: const Icon(Icons.connected_tv),
           ),
@@ -462,6 +457,11 @@ class _HomePageState extends State<HomePage> {
           FloatingActionButton(
             onPressed: sendAlbumList,
             child: const Icon(Icons.album),
+          ),
+          SizedBox(height: 18),
+          FloatingActionButton(
+            onPressed: sendFileFromAlbum,
+            child: const Icon(Icons.photo),
           ),
         ],
       ),

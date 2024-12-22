@@ -65,49 +65,50 @@ const StreamPage = () => {
       peer.on("connection", (conn) => {
         console.log("Connected to peer:", conn.peer);
         conn.on("data", (data) => {
-          console.log('Received data:', data);
+          console.log('Received data:', data, typeof data);
           const _data = data as {
-            fileId: string;
-            fileName: string;
-            fileSize: number;
-            chunk: Uint8Array;
+            __peerData: string;
+            n: number;
+            total: number;
+            data: Uint8Array;
+
             type: string;
-            index: number;
+            fileSize: number;
+            fileName: string;
           }
 
-          if (_data.index === 1) {
+          if (_data.n === 1) {
             fileRef.current = {};
-            fileRef.current[_data.index] = _data.chunk;
+            fileRef.current[_data.n] = _data.data;
 
             fileInfoRef.current = {
-              fileId: _data.fileId,
+              fileId: _data.__peerData,
               fileName: _data.fileName,
               fileSize: _data.fileSize,
-              current: new Uint8Array(_data.chunk).byteLength,
+              current: new Uint8Array(_data.data).byteLength,
               type: _data.type
             }
-          
+
             stats.stopListenRTCStats();
             stats.startListenRTCStats(conn, RTCStatslistener);
           } else {
-            const lastIndex = Math.ceil(fileInfoRef.current.fileSize / (64 * 1024));
-
-            fileRef.current[_data.index] = _data.chunk;
-            fileInfoRef.current.current += new Uint8Array(_data.chunk).byteLength;
+            fileRef.current[_data.n] = _data.data;
+            fileInfoRef.current.current += new Uint8Array(_data.data).byteLength;
             // 最后一个文件块
-            if (_data.index >= lastIndex) {
+            if (_data.n >= _data.total) {
               setTimeout(() => {
                 stats.stopListenRTCStats();
               }, 1001);
               return;
             }
             // 每「batchFileCount」个文件块请求（应答）一次
-            if (_data.index % batchFileCount === 0) {
-              conn.send(JSON.stringify({
+            if (_data.n % batchFileCount === 0) {
+              console.log('request-file-chunk', _data.__peerData, _data.n + 1);
+              conn.send({
                 type: 'request-file-chunk',
-                fileId: _data.fileId,
-                index: _data.index + 1
-              }));
+                fileId: _data.__peerData,
+                index: _data.n + 1
+              });
             }
           }
         })
