@@ -1,32 +1,62 @@
-import { DataConnection } from "peerjs";
+/**
+ * 分别获取每个 peerConnection 的 stats
+ */
+import Peer, { DataConnection } from "peerjs";
 
 export interface IRTCStatsListenOptions {
   interval: number;
 }
 
-let listenerTimer: number = -1;
+let listenerTimer = -1;
+let interval = 1000;
+const connectionLabelIdMap: Record<string, string> = {};
 
-const startListenRTCStats = (
-  conn: DataConnection, 
-  callback: (report: RTCStatsReport, conn: DataConnection) => void, 
+const subscribeRTCStats = (
+  connectionId: string,
+  label: string,
   options?: IRTCStatsListenOptions
 ) => {
-  const { interval } = options || { interval: 1000 };
+  connectionLabelIdMap[connectionId] = label;
+  interval = options?.interval || 1000;
+};
+
+const startListenRTCStats = <R>(
+  peer: Peer,
+  peerId: string,
+  callback: (report: RTCStatsReport, conn: DataConnection) => R
+) => {
   listenerTimer = setInterval(() => {
-    conn.peerConnection.getStats(null).then((statsReport) => {
-      callback(statsReport, conn);
+    Object.keys(connectionLabelIdMap).forEach((connectionId) => {
+      const connection = peer.getConnection(peerId, connectionId);
+      connection?.peerConnection.getStats(null).then((statsReport) => {
+        callback(statsReport, connection as DataConnection);
+      })
     });
   }, interval);
-}
+};
 
-const stopListenRTCStats = () => {
-  if (listenerTimer !== -1) {
+const unSubscribeRTCStats = (connectionId: string) => {
+  delete connectionLabelIdMap[connectionId];
+
+  const keys = Object.keys(connectionLabelIdMap);
+  if (keys.length === 0 && listenerTimer !== -1) {
     clearInterval(listenerTimer);
     listenerTimer = -1;
   }
+};
+
+const statsToArray = (report: RTCStatsReport) => {
+  const arr = [];
+  report.forEach((value) => {
+    arr.push(value);
+  });
+  return arr;
 }
 
 export default {
+  statsToArray,
+
+  subscribeRTCStats,
   startListenRTCStats,
-  stopListenRTCStats
-}
+  unSubscribeRTCStats,
+};

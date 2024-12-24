@@ -1,7 +1,7 @@
 export const chooseFile = (options?: {
-  accept: string;
-  multiple: boolean;
-  webkitdirectory: boolean;
+  accept?: string;
+  multiple?: boolean;
+  webkitdirectory?: boolean;
 }): Promise<File[]> => {
   return new Promise((resolve, reject) => {
     try {
